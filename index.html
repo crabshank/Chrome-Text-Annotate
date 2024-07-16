@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">	
+    <title>Text Annotate dashboard</title>
+  </head>
+  <body>
+	<style>
+	button{
+	background-color: buttonface;
+	min-width: -webkit-fill-available;
+	}#txta{
+	min-width: -webkit-fill-available;
+	}
+	</style>
+	  <button id="markPage">Mark page</button>
+	  <button id="markPageSave" title="You will only be able to annotate the saved page">Mark page + save</button>
+	<textarea id="txta" title="Enter unique selector of element within which the text will be marked" placeholder="Enter CSS selector here: " style="
+		display: flex;
+		min-height: min-content;
+		flex-direction: column-reverse;
+		margin-top:0.87em;
+	"></textarea>
+	<button id="setupPatt" style="margin-top:0.87em;">Setup pattern-based (regex/plaintext) annotation window</button>
+	<script src="index.js"></script>
+  </body>
+</html>

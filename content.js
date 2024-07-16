@@ -1,0 +1,1277 @@
+var addrs=[];
+var fcns=[];
+var urlMatch=[];
+var firstDone=false;
+var isMarked=false;
+var markStyl='mark.no_hl[indexnumber]{background-color:unset !important; color:unset !important;}';
+var tb_id=null;
+
+async function updateAnnotations(){
+	return new Promise(function(resolve) {
+		chrome.storage.local.get(null, function(items) {
+							let setObj=items;
+							let setObjct=true;
+
+							if(!!items.addrs_list && typeof  items.addrs_list!=='undefined'){
+								addrs=JSON.parse(items.addrs_list);
+							}else{
+								setObjct=false;
+							}
+							
+							if(!!items.fcn_list && typeof  items.fcn_list!=='undefined'){
+								fcns=JSON.parse(items.fcn_list);
+							}else{
+								setObjct=false;
+							}
+								if(setObjct){
+									 let an={};
+									an.textRGB=textAnnotate.textRGB;
+									an.annotations=textAnnotate.annotations;
+									an.options=textAnnotate.options;
+									an.markText= textAnnotate.selector===null ? textAnnotate.markText: null;
+									an.selector=textAnnotate.selector;
+									let ann=JSON.stringify(an)/*.replaceAll('[{','[\n\t{').replaceAll('},{','},\n\t{').replaceAll('}]','}\n]')+';'*/;
+									let wlh=window.location.href;
+									inAddrs=addrs.includes(wlh)?true:false;
+									if(!urlMatch[0] || !inAddrs){
+										let i=addrs.length;
+										addrs.push(wlh);
+										fcns.push(ann);
+										if(!urlMatch[0]){
+											urlMatch=[true,wlh,fcns[i],i];
+										}
+									}else{
+										fcns[ urlMatch[3] ]=ann;
+									}
+									setObj.fcn_list=JSON.stringify(fcns);
+									setObj.addrs_list=JSON.stringify(addrs);
+									chrome.storage.local.set(setObj, function() {
+													resolve();
+									});
+								}
+		});
+	});
+}
+
+let textAnnotate={};
+
+function insertAfter(newNode, existingNode) {
+	existingNode.parentNode.insertBefore(newNode, existingNode.nextSibling);
+}
+
+textAnnotate.annotations=[]; //Store annotations
+textAnnotate.lastAnnotations=[]; //Store last annotations
+textAnnotate.options=[]; //Store names to choose from
+textAnnotate.markText='';
+
+textAnnotate.perChar=function(el){ //Create per-character mark tags
+	let n=getMatchingNodesShadow(el, '#text', true, false).filter((t)=>{return t.parentElement.tagName!=='TITLE' ;});
+	let allTextNodeParentEls=[];
+	let cnt=0;
+	let defCol;
+	for(let k=0, len_k=n.length; k<len_k; k++){
+        let diffCol=false;
+		let nk=n[k];
+		let pp=nk.parentElement;
+
+		let chs=getMatchingNodesShadow(pp, false, true,false);
+		if(!chs.includes(textAnnotate.ifrm) && !chs.includes(textAnnotate.sct) && !chs.includes(textAnnotate.scr)){
+            let wcs=window.getComputedStyle(pp);
+            let txc=wcs.color;
+			let txcAtt=' '; 
+            if(cnt===0){
+                defCol=txc;
+				txcAtt=` textCol="${txc}" `;
+            }
+			let dtc=nk.textContent;
+            if(txc!==defCol){
+				txcAtt=` textCol="${txc}" `;
+                diffCol=true;
+            }
+			nk.textContent=`<mark${txcAtt}indexnumber="${cnt}" class="no_hl">`+dtc[0]+'</mark>';
+            textAnnotate.markText+=dtc[0];
+			nk.indexNumber=cnt;
+			
+			if(!allTextNodeParentEls.includes(pp)){
+				allTextNodeParentEls.push(pp);
+			}
+			let lastNode=nk;
+			cnt++;
+			for(let i=1, len_i=dtc.length; i<len_i; i++){
+                if(diffCol===true){
+					txcAtt=` textCol="${txc}" `;
+                }
+				nt = document.createTextNode(`<mark${txcAtt}indexnumber="${cnt}" class="no_hl">`+dtc[i]+'</mark>');
+                textAnnotate.markText+=dtc[i];
+				insertAfter(nt, lastNode);
+				nt.indexNumber=cnt;
+				cnt++;
+				lastNode=nt;
+			}
+		}
+	}
+	let styl='<style>'+markStyl+'</style>'
+	document.head.insertAdjacentHTML('afterbegin',styl);
+	for(let k=0, len_k=allTextNodeParentEls.length; k<len_k; k++){
+		let pk=allTextNodeParentEls[k];
+		pk.innerHTML=pk.innerHTML.replaceAll('&lt;mark textCol="','<mark textCol="').replaceAll('&lt;mark indexnumber="','<mark indexnumber="').replaceAll('" class="no_hl"&gt;','" class="no_hl">').replaceAll('&lt;/mark&gt;','</mark>');
+	}
+	console.log('Per-character mark tags created!');
+}
+
+textAnnotate.nameSelection=function(names, altText,hexRGB,ix){ //Create annotation for selected node range; 'names' and altText arguments are a string or array of strings
+	if(ix!==null){
+		ixt=parseInt(ix);
+		let ax=textAnnotate.annotations[ixt];
+		let stx2=getMatchingNodesShadow(document,'mark[indexnumber]',false,false).filter(m=>{let n=parseInt(m.getAttribute('indexnumber')); return ax.nodeIndexes.includes(n); });
+		let srgb=(typeof(hexRGB)==='string')?hexRGB:'#FFFF00';
+		for(let i=0, len_i=stx2.length; i<len_i; i++){
+			stx2[i].style.backgroundColor=srgb;
+			let txc=stx2[i].getAttribute('textCol');
+			stx2[i].style.color=txc!==null ? txc : stx2[0].getAttribute('textCol');
+		}
+			let an={};
+			if(typeof(names)==='string'){
+				ax.types=[names];
+				
+				if(typeof(altText)!=='undefined'){
+					ax.altText=altText;
+				}
+			}else{ //array
+				ax.types=[];
+				if(typeof(altText)!=='undefined'){
+					ax.altText=altText;
+				}
+				for(let i=0, len_i=names.length; i<len_i; i++){
+					ax.types.push(names[i]);
+				}
+			}
+			ax.hexRGB=srgb;
+            for(let k=0, len_k=ax.types.length; k<len_k; k++){
+			if(!textAnnotate.options.includes(ax.ypes[k])){
+				textAnnotate.options.push(ax.types[k]);
+			}
+		}
+			textAnnotate.annotations[ixt]=ax; // [ [ ALL INDEX NUMBERS HERE! ], ... ]
+			updateAnnotations();
+	}else{
+		let sel=window.getSelection();
+        let selNodes=[];
+        let idc=textAnnotate.ifrm_document;
+        let selTxt=idc.getElementById('selText');
+        let stx=JSON.parse(selTxt.getAttribute('selmarks'));
+        let stx2=getMatchingNodesShadow(document,'mark.no_hl[indexnumber]',false,false);
+		let stx_doc=[];
+		let firstTCol;
+		stx_doc.length=stx2.length;
+		let srgb=(typeof(hexRGB)==='string')?hexRGB:'#FFFF00';
+		for(let i=0, len_i=stx2.length; i<len_i; i++){
+			let s2i=stx2[i];
+			let n=parseInt(s2i.getAttribute('indexnumber'));
+			stx_doc[n]=s2i;
+		}
+		for(let i=0, len_i=stx.length; i<len_i; i++){
+			let stxi=stx[i];
+            selNodes.push(stxi);
+            stx_doc[stxi].className='';
+            stx_doc[stxi].style.backgroundColor=srgb;
+			let txc=stx_doc[ selNodes[0] ].getAttribute('textCol');
+			txc=txc!==null ? txc : stx_doc[0].getAttribute('textCol');
+			stx_doc[stxi].style.color=txc;
+			if(i===0){
+				firstTCol=txc;
+			}
+		}
+		
+		if(selNodes.length>0){
+			let an={};
+			if(typeof(names)==='string'){
+				an={text:selTxt.innerText,types:[names],nodeIndexes:selNodes};
+				if(typeof(altText)!=='undefined'){
+					an.altText=altText;
+				}
+			}else{ //array
+				an={text:selTxt.innerText,types:[]};
+				if(typeof(altText)!=='undefined'){
+					an.altText=altText;
+				}
+				for(let i=0, len_i=names.length; i<len_i; i++){
+					an.types.push(names[i]);
+				}
+				an.nodeIndexes=selNodes;
+			}
+            an.textCol=firstTCol;
+			an.hexRGB=srgb;
+            for(let k=0, len_k=an.types.length; k<len_k; k++){
+                if(!textAnnotate.options.includes(an.types[k])){
+                    textAnnotate.options.push(an.types[k]);
+                }
+            }
+			textAnnotate.annotations.push(an); // [ [ ALL INDEX NUMBERS HERE! ], ... ]
+			updateAnnotations();
+		}else{
+			console.error('No selected text!');
+		}
+	}
+}
+
+textAnnotate.getAnnotationsByType=function(typs){ // 'typs' is a string or array of strings
+	if(typeof(typs)==='string'){
+		let f=textAnnotate.annotations.filter((n)=>{return n.types.includes(typs);});
+		console.log(f);
+	}else{
+		let out=[];
+		let outIxs=[];
+		for(let i=0, len_i=typs.length; i<len_i; i++){
+			let f=textAnnotate.annotations.filter((n)=>{return n.types.includes(typs[i]);});
+			for(let k=0, len_k=f.length; k<len_k; k++){
+				let n=textAnnotate.annotations.indexOf(f[k]);
+				if(!outIxs.includes(n)){
+					outIxs.push(n);
+					out.push(f[k]);
+				}
+				
+			}
+		}
+		console.log(out)
+	}
+}
+
+textAnnotate.logAnnotations=function(){ //Export annotations as text array
+    let an={};
+    an.annotations=textAnnotate.annotations;
+    an.markText=textAnnotate.markText;
+	let ann=JSON.stringify(an).replaceAll('[{','[\n\t{').replaceAll('},{','},\n\t{').replaceAll('}]','}\n]')+';';
+	copy(ann);
+	console.log(ann);
+}
+
+textAnnotate.logOptions=function(){ //Export annotations as text array
+	let opt=JSON.stringify(textAnnotate.options);
+	copy(opt);
+	console.log(opt);
+}
+
+textAnnotate.logMatchingAnnotations=function(event){ //Pointer event; Log matching annotations
+	let a=textAnnotate.annotations;
+	let t=event.target;
+	let mtc=[];
+	let msl='mark[indexnumber]';
+	if(t.matches(msl)){
+		let f=a.filter((n)=>{
+			return n.nodeIndexes.includes(parseInt(t.getAttribute('indexnumber')));
+		});
+		for(let k=0, len_k=f.length; k<len_k; k++){
+			let x=a.indexOf(f[k]);
+			if(!mtc.includes(x)){
+				mtc.push(x);
+			}
+		}
+	}else{
+		let chd=getMatchingNodesShadow(t, msl, false, false);
+		let mtc=[];
+		for(let i=0, len_i=chd.length; i<len_i; i++){
+				let ci=chd[i];
+				let f=a.filter((n)=>{
+					return n.nodeIndexes.includes(ci.indexNumber);
+				});
+				for(let k=0, len_k=f.length; k<len_k; k++){
+					let x=a.indexOf(f[k]);
+					if(!mtc.includes(x)){
+						mtc.push(x);
+					}
+				}
+		}
+	}
+		
+		let mtcl=mtc.length;
+		if(mtcl>0){
+			let argm=[];
+			if( JSON.stringify(textAnnotate.lastAnnotations)!==JSON.stringify(mtc) ){
+				textAnnotate.lastAnnotations=mtc;
+				console.group('Matching annotations:');
+					for(let i=0; i<mtcl; i++){
+						let ix=mtc[i];
+						let b=a[ix];
+						b.index=ix;
+						console.log(b);
+						argm.push(b);
+					}
+				console.groupEnd();
+			}else{
+				for(let i=0; i<mtcl; i++){
+					let ix=mtc[i];
+					let b=a[ix];
+					b.index=ix;
+					argm.push(b);
+				}
+			}
+			//setup iframe
+			textAnnotate.sct.style.setProperty( 'display', 'inline-block','important' );
+			textAnnotate.populateFrameHover(argm);
+		}
+	
+}
+
+textAnnotate.hlMarks=function(el){ //Highlight marks after textAnnotate.annotations has already been assigned
+	let mks=getMatchingNodesShadow( ( (el===null || typeof(el)==='undefined' )? document : el ) ,`mark[indexnumber]`,false,false);
+	for(let i=0, len_i=textAnnotate.annotations.length; i<len_i; i++){
+		let ai=textAnnotate.annotations[i];
+		for(let k=0, len_k=ai.nodeIndexes.length; k<len_k; k++){
+			let xk=ai.nodeIndexes[k];
+			let ix=mks.findIndex( (m)=>{ return parseInt(m.getAttribute('indexnumber'))===xk; } );
+			if(ix>=0){
+				let msx=mks[ix];
+				msx.className='';
+				msx.style.backgroundColor=ai.hexRGB;
+				let txc=msx.getAttribute('textCol');
+				msx.style.color=txc!==null ? txc : mks[0].getAttribute('textCol');
+			}
+		}
+	}
+}
+
+textAnnotate.importString=function(arrString,el){ //Import annotations as array string; el is the element within which to search for annotatable mark tags, if undefined or null, defaults to document
+	let an=JSON.parse(arrString);
+    textAnnotate.annotations=an.annotations;
+    textAnnotate.markText=an.markText;
+	textAnnotate.hlMarks(el);
+	updateAnnotations();
+}
+
+textAnnotate.importOptionsString=function(arrString){ //Import options as array string
+	textAnnotate.options=JSON.parse(arrString);
+}
+
+textAnnotate.import=function(arr,el){  //Import annotations as array; el is the element within which to search for annotatable mark tags, if undefined or null, defaults to document
+	textAnnotate.annotations=arr;
+	textAnnotate.hlMarks(el);
+	updateAnnotations();
+}
+
+textAnnotate.importOptions=function(arr){  //Import options as array
+	textAnnotate.options=arr;
+	updateAnnotations();
+}
+
+textAnnotate.remove=function(n){  //Remove annotations as array; n is number or array of numbers
+	let arr=(typeof(n)==='number')?[n]:n;
+	let ixs=[];
+	let out=[];
+	for(let k=0, len_k=arr.length; k<len_k; k++){
+		let nk=arr[k];
+		let ank=textAnnotate.annotations[nk];
+		let mk=getMatchingNodesShadow(document,`mark[indexnumber]`,false,false);
+		let mks=[];
+		mks.length=mk.length;
+		for(let i=0, len_i=mks.length; i<len_i; i++){
+			let mki=mk[i];
+			let ix=parseInt(mki.getAttribute('indexnumber'));
+			mks[ix]=mki;
+		}
+
+		for(let j=0, len_j=ank.nodeIndexes.length; j<len_j; j++){
+			let nj=ank.nodeIndexes[j];
+			mks[nj].className='no_hl';
+		}
+		ixs.push(nk);
+	}
+	let optsUpd=[];
+	for(let k=0, len_k=textAnnotate.annotations.length; k<len_k; k++){
+		if(!ixs.includes(k)){
+			let tak=textAnnotate.annotations[k];
+			out.push(tak);
+			for(let j=0, len_j=tak.types.length; j<len_j; j++){
+				let tj=tak.types[j];
+				if(optsUpd.includes(tj)===false){
+					optsUpd.push(tj);
+				}
+			}
+		}
+	}
+	let outp=[];
+	for(let k=0, len_k=textAnnotate.options.length; k<len_k; k++){
+		let pk=textAnnotate.options[k];
+		if(optsUpd.includes(pk)===true){
+			outp.push(pk);
+		}
+	}
+	textAnnotate.options=outp;
+	textAnnotate.annotations=out;
+	updateAnnotations();
+}
+
+textAnnotate.addOptions=function(opt){	//'opt' is a string or array of strings
+		let opts=(typeof(opts)==='string')?[opt]:opt;
+		for(let i=0, len_i=opts.length; i<len_i; i++){
+			if(!textAnnotate.options.includes(opts[i])){
+				textAnnotate.options.push(opts[i]);
+			}
+		}
+		updateAnnotations();
+}
+
+textAnnotate.removeOptions=function(opt){	//'opt' is a string or array of strings
+		let opts=(typeof(opts)==='string')?[opt]:opt;
+		for(let i=0, len_i=opts.length; i<len_i; i++){
+			textAnnotate.options=textAnnotate.options.filter((p)=>{return p!==opts[i];})
+		}
+		updateAnnotations();
+}
+
+textAnnotate.findMarks=function(pat,plain,case_insensitive){	//search for marked text
+    let str=textAnnotate.markText;
+    str = case_insensitive===true ? str.toLocaleLowerCase() : str ;
+    let out=[];
+    if(plain===true){
+        let a=str.indexOf(pat);
+        let sfl=pat.length;
+        let pl=pat.length;
+        while(a!==-1){
+            out.push({text:pat, markRange:[a,a+pl-1]});
+            a=str.indexOf(pat,a+sfl);
+        }
+    }else{ //regex
+        let a=[...str.matchAll(pat)];
+        for(let i=0, len_i=a.length; i<len_i; i++){
+            let ai=a[i];
+            let ai0=ai[0];
+            let aix=ai.index;
+            out.push({text:ai0, markRange:[aix,aix+ai0.length-1]});
+        }
+    }
+    return out;
+}
+
+textAnnotate.searchSelect=function(mks,hexRGB,types,altText){	//search for marked text and select; mks=textAnnotate.findMarks(pat,plain,case_insensitive);
+
+    for(let i=0, len_i=mks.length; i<len_i; i++){
+        let mi=mks[i];
+        let mitx=mi.text;
+        let selNodes=[];
+        for(let j=mi.markRange[0], jb=mi.markRange[1]; j<=jb; j++){
+            selNodes.push(j);
+        }
+        let an={};
+			if(typeof(types)==='string'){
+				an={text:mitx,types:[types],nodeIndexes:selNodes};
+				if(!!altText && typeof(altText)!=='undefined'){
+					an.altText=altText;
+				}
+			}else{ //array
+				an={text:mitx,types:[]};
+				if(typeof(altText)!=='undefined'){
+					an.altText=altText;
+				}
+                if(!!types && typeof(types)!=='undefined'){
+				for(let i=0, len_i=types.length; i<len_i; i++){
+					an.types.push(types[i]);
+				}
+            }
+				an.nodeIndexes=selNodes;
+			}
+
+        let stx2=getMatchingNodesShadow(document,'mark[indexnumber]',false,false);
+		let stx_doc=[];
+		let firstTCol;
+		stx_doc.length=stx2.length;
+		let srgb=(typeof(hexRGB)==='string')?hexRGB:'#FFFF00';
+		for(let i=0, len_i=stx2.length; i<len_i; i++){
+			let s2i=stx2[i];
+			let n=parseInt(s2i.getAttribute('indexnumber'));
+			stx_doc[n]=s2i;
+		}
+		
+		for(let i=0, len_i=selNodes.length; i<len_i; i++){
+			let stxi=selNodes[i];
+            stx_doc[stxi].className='';
+            stx_doc[stxi].style.backgroundColor=srgb;
+			let txc=stx_doc[ selNodes[0] ].getAttribute('textCol');
+			txc=txc!==null ? txc : stx_doc[0].getAttribute('textCol');
+			stx_doc[stxi].style.color=txc;
+			if(i===0){
+				firstTCol=txc;
+			}
+		}
+
+            an.textCol=firstTCol;
+			an.hexRGB=srgb;
+            for(let k=0, len_k=an.types.length; k<len_k; k++){
+                if(!textAnnotate.options.includes(an.types[k])){
+                    textAnnotate.options.push(an.types[k]);
+                }
+            }
+			textAnnotate.annotations.push(an); // [ [ ALL INDEX NUMBERS HERE! ], ... ]
+    }
+	updateAnnotations();
+}
+
+function doMark(s, markOnly, noMark){
+	let selectEl=getMatchingNodesShadow(document,s,false,false);
+	let sel= selectEl.length===1 && s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? selectEl[0] : document.documentElement;
+	textAnnotate.selector= markOnly===true || isMarked===true  ? null : s ;
+	if(sel===null && s!==false){
+		alert('Invalid CSS selector!');
+		return;
+	}
+	//iframe
+	if(markOnly!==true){
+		//iframe
+		textAnnotate.sct=document.createElement('section');
+		document.body.insertAdjacentElement('beforeend',textAnnotate.sct);
+		textAnnotate.sct.style.setProperty( 'z-index', Number.MAX_SAFE_INTEGER, 'important' );
+		textAnnotate.sct.style.setProperty( 'display', 'none','important' );
+		textAnnotate.sct.style.setProperty( 'top', '0px', 'important' );
+		textAnnotate.sct.style.setProperty( 'left', '0px', 'important' );
+		textAnnotate.sct.style.setProperty( 'width', '100%', 'important' );
+		textAnnotate.sct.style.setProperty( 'position', 'fixed', 'important' );
+		textAnnotate.sct.style.setProperty( 'margin', 0, 'important' );
+		textAnnotate.sct.style.setProperty( 'border', 0, 'important' );
+		textAnnotate.sct.style.setProperty( 'padding', 0, 'important' );
+
+		textAnnotate.ifrm=document.createElement('iframe');
+		textAnnotate.sct.insertAdjacentElement('afterbegin',textAnnotate.ifrm);
+		textAnnotate.ifrm_document=textAnnotate.ifrm.contentWindow.document;
+
+			let robs = new ResizeObserver(entries => {
+			for (let entry of entries) {
+				let cr = entry.contentRect;
+				if(entry.target===textAnnotate.ifrm_document.body){
+					textAnnotate.ifrm.style.setProperty( 'width', `${entry.target.scrollWidth}px`, 'important' );
+					textAnnotate.ifrm.style.setProperty( 'height', `${cr.height}px`, 'important' );
+					textAnnotate.sct.style.setProperty( 'height', `${cr.height}px`, 'important' );
+				}
+			}
+		});
+
+		robs.observe(textAnnotate.ifrm_document.body);
+		
+		textAnnotate.ifrm_document.oninput=function(e){
+			let t=e.target;
+			let f=t.getAttribute('func');
+			if(f==='setHeights'){
+				t.style.height='min-content';
+				t.style.height=t.scrollHeight+3;
+			}else if(f==='checkCols'){
+				let cols=[...textAnnotate.ifrm_document.querySelectorAll('input.col[type="checkbox"]:checked')];        
+				if(cols.length===2){
+					let ixn=cols.findIndex((c)=>{return c!==t});
+					cols[ixn].checked=false;
+					t.checked=true;
+				}
+			}else if(f==='customCol'){
+				t.style.backgroundColor=t.value;
+				t.style.border=t.value;
+				let cn=t.parentElement.childNodes;
+				if(cn[cn.length-1].textContent==='Custom'){
+					let cols=[...textAnnotate.ifrm_document.querySelectorAll('input.col[type="checkbox"]:checked')];
+					cols.forEach(c=>{
+						c.checked=false;
+					});
+					t.previousElementSibling.checked=true;
+				}
+				cn[cn.length-1].textContent=t.value.toLocaleUpperCase();
+			}
+		}
+
+		let expanded = true;
+		textAnnotate.ifrm_document.onclick=function(e){
+			let t=e.target;
+			let f=t.getAttribute('func');
+			if(t.tagName!=='INPUT' && t.tagName!=='LABEL'){
+				e.preventDefault();
+			}
+			e.stopPropagation();
+			
+			if(f==='editAnn'){
+				textAnnotate.populateFrame(parseInt(t.getAttribute('ix')));
+			}else if(f==='remAnn'){
+				textAnnotate.remove(parseInt(t.getAttribute('ix')));
+				textAnnotate.sct.style.setProperty( 'display', 'none','important' );
+			}else if(f==='showCheckboxes'){
+				let checkboxes = document.getElementById(  ( col ? "checkboxesCol" : "checkboxes" ) );
+				if (!expanded) {
+					checkboxes.style.display = "block";
+					checkboxes.classList.add('expanded');
+					expanded = true;
+				} else {
+					checkboxes.style.display = "none";
+					checkboxes.classList.remove('expanded');
+					expanded = false;
+				}
+			}else if(t.id==='pattSearch'){
+				let idc=textAnnotate.ifrm_document;
+				let patEl=idc.getElementById('selText');
+				let isPlain= idc.getElementById('plainSearch').checked ? true : false ;
+				let p= isPlain ? patEl.innerText : new RegExp(patEl.innerText, "g");
+				let isCaseInsens= idc.getElementById('caseInsens').checked ? true : false ;
+				let mks=textAnnotate.findMarks(p,isPlain,isCaseInsens);
+				let cols=null;
+				let chkd=[...textAnnotate.ifrm_document.querySelectorAll('input.types[type="checkbox"]:checked')].map((c)=>{return c.parentElement.innerText;});
+				try{ 
+					cols=[[...textAnnotate.ifrm_document.querySelectorAll('input.col[type="checkbox"]:checked')][0]].map((c)=>{let cpar=c.parentElement; let cpc=cpar.childNodes; return cpc[cpc.length-1].textContent;})[0];
+					cols=(cols==="Custom")?null:cols;
+				}catch(e){;}
+				let altTexts=[...textAnnotate.ifrm_document.querySelectorAll('textarea.altText')].map((b)=>{return b.value;}).filter((b)=>{return b!==''});
+				let altTx;
+				if(altTexts===null || altTexts.length===0){
+						altTx=null;
+				}else{
+						altTx=(altTexts.length===1)?altTexts[0]:altTexts;
+				}
+				textAnnotate.searchSelect(mks,cols,chkd,altTx);
+			}else if(t.id==='nameSel'){
+				let cols=null;
+				let chkd=[...textAnnotate.ifrm_document.querySelectorAll('input.types[type="checkbox"]:checked')].map((c)=>{return c.parentElement.innerText;});
+				try{ 
+					cols=[[...textAnnotate.ifrm_document.querySelectorAll('input.col[type="checkbox"]:checked')][0]].map((c)=>{let cpar=c.parentElement; let cpc=cpar.childNodes; return cpc[cpc.length-1].textContent;})[0];
+					cols=(cols==="Custom")?null:cols;
+				}catch(e){;}
+				let altTexts=[...textAnnotate.ifrm_document.querySelectorAll('textarea.altText')].map((b)=>{return b.value;}).filter((b)=>{return b!==''});
+				let ix= t.getAttribute('ix');
+				if(altTexts===null || altTexts.length===0){
+						textAnnotate.nameSelection(chkd,null,cols,ix);
+				}else{
+						textAnnotate.nameSelection(chkd, (	(altTexts.length===1)?altTexts[0]:altTexts	),cols,ix );
+				}
+				console.log(textAnnotate.annotations);
+				textAnnotate.sct.style.setProperty( 'display', 'none','important' );
+			}else if(t.id==='hideFrame'){
+				textAnnotate.sct.style.setProperty( 'display', 'none','important' );
+			}else if(t.className==='deleteAlt'){
+				let altTextsInst=t.parentElement;
+				let allAltTexts=altTextsInst.parentElement;
+				elRemover(altTextsInst);
+				let scts=[...allAltTexts.getElementsByClassName('altTextInstance')];
+				if(scts.length>0){
+					let sctLast=scts.at(-1);
+					let hasPlus=(sctLast.getElementsByClassName('newAlt').length===0)?false:true;
+					if(hasPlus===false){
+						sctLast.outerHTML=(scts.length===1)?`<section style="margin-bottom: 0.7ch;" class="altTextInstance">	<textarea func="setHeights" class="altText">${sctLast.firstElementChild.value}</textarea>	<button class="newAlt" style="filter: hue-rotate(212deg) saturate(10); width: 4.3ch;">➕</button><button id="addOpt" style="margin-left: 0.35ch;">Add as type</button></section>`:`<section class="altTextInstance">	<textarea func="setHeights" class="altText">${sctLast.firstElementChild.value}</textarea>	<button class="newAlt" style="filter: hue-rotate(212deg) saturate(10); width: 4.3ch;">➕</button> <button class="deleteAlt" style=" width: 4.3ch;">🗙</button>	</section>`;
+					}
+				}
+			}else if(t.className==='newAlt'){
+				let altTexts=t.parentElement.parentElement;
+				altTexts.insertAdjacentHTML('beforeend','<section class="altTextInstance">	<textarea func="setHeights" class="altText"></textarea>	<button class="newAlt" style="filter: hue-rotate(212deg) saturate(10); width: 4.3ch;">➕</button> <button class="deleteAlt" style=" width: 4.3ch;">🗙</button>	</section>');
+				let scts=[...altTexts.getElementsByClassName('altTextInstance')];
+				for(let i=0, len=scts.length-1;i<len;i++){
+					elRemover(scts[i].getElementsByClassName('newAlt')[0]);
+				}
+			}else if(t.id==='addOpt' || t.id==='addOpt_patt'){
+				let opt=t.parentElement.firstElementChild.value;
+					if(!textAnnotate.options.includes(opt)){
+						textAnnotate.options.push(opt);
+						let slt=textAnnotate.ifrm_document.getElementById('selText');
+						textAnnotate.populateFrame([slt.innerText,slt.getAttribute('selmarks')],[[...textAnnotate.ifrm_document.querySelectorAll('#checkboxes input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;}) , [...textAnnotate.ifrm_document.querySelectorAll('#checkboxesCol input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;})],(t.id==='addOpt_patt' ? true : false),[textAnnotate.ifrm_document.getElementById('selText').innerText,textAnnotate.ifrm_document.getElementById('plainSearch').checked,textAnnotate.ifrm_document.getElementById('caseInsens').checked]);
+					}
+					updateAnnotations();
+			}
+		}
+
+		//textAnnotate.ifrm.style.setProperty( 'z-index', Number.MAX_SAFE_INTEGER, 'important' );
+		textAnnotate.ifrm.style.setProperty( 'margin', 0, 'important' );
+		textAnnotate.ifrm.style.setProperty( 'border', 0, 'important' );
+		textAnnotate.ifrm.style.setProperty( 'padding', 0, 'important' );
+		textAnnotate.ifrm.style.setProperty( 'float', 'right', 'important' );
+
+		/*let wifr=window.getComputedStyle(textAnnotate.ifrm);
+		textAnnotate.sct.style.setProperty( 'height', wifr['height'], 'important' );
+		textAnnotate.sct.style.setProperty( 'width', wifr['width'], 'important' );*/
+
+		textAnnotate.ifrm_document.body.style.setProperty( 'background', '#333', 'important' );
+		textAnnotate.ifrm_document.body.style.setProperty( 'margin', 0, 'important' );
+		textAnnotate.ifrm_document.body.style.setProperty( 'border', 0, 'important' );
+		textAnnotate.ifrm_document.body.style.setProperty( 'padding', 0, 'important' );
+		textAnnotate.ifrm_document.body.style.setProperty( 'overflow', 'hidden', 'important' );
+		textAnnotate.ifrm_document.body.style.setProperty( 'height','max-content', 'important' );
+
+		document.addEventListener('pointerup',(e)=>{
+			if(window.getSelection().toString()!=='' && textAnnotate.isSelecting===true){	
+				textAnnotate.isSelecting=false;
+				textAnnotate.sct.style.setProperty( 'display', 'inline-block','important' );
+				textAnnotate.populateFrame();
+			}else{
+				textAnnotate.sct.style.setProperty( 'display', 'none','important' );
+			}
+		});
+	//}
+
+		textAnnotate.ifrm_document.head.insertAdjacentHTML('afterbegin',`<style>
+		* {
+			color: white;
+		}
+		button{
+			background: buttonface;
+			border-color: buttonface;
+			color: black;
+		}
+		td, th {
+			border: buttonface;
+			border-style: inset;
+			border-width: 0.2ch;
+			text-align: center;
+		}
+
+		.multiselect {
+		  width: max-content;
+		}
+
+		.selectBox {
+			position: relative;
+			min-width: 17.7ch;
+		}
+				
+		.selectBox select {
+		  width: 100%;
+		  font-weight: bold;
+		}
+		
+		#selText {
+			min-width: 16.9ch;
+		}
+
+		.overSelect {
+		  position: absolute;
+		  left: 0;
+		  right: 0;
+		  top: 0;
+		  bottom: 0;
+		}
+
+		#checkboxes.expanded{
+			border: buttonface;
+			border-style: outset;
+			border-width: 0.3ch;
+		}
+
+		#checkboxes.expanded:not(:has(label)) {
+		  display: block !important;
+		  border: 0 !important;
+		}
+
+		#checkboxes label {
+		  display: block;
+		}
+
+		#checkboxes label:hover {
+		  background-color: #1e90ff;
+		}
+
+		input[type="checkbox"]{
+			filter: hue-rotate(247deg) contrast(1.65) !important;
+		}
+
+		textarea.altText{
+			vertical-align: bottom;
+		}
+
+		div.col{
+			width: 4ch;
+			margin-right: 0.57ch;
+		}
+
+		label.col{
+			display: inline-flex;
+		}
+
+		div#checkboxesCol.expanded {
+			border: buttonface 0.2ch outset;
+			display: flex !important;
+			flex-direction: column !important;
+		}
+
+		input[type="color" i]::-webkit-color-swatch {
+			border-color: transparent !important;
+			background-color: transparent !important;
+		}
+
+		label.col.pre {
+			margin-top: 0.35ch;
+		}
+		</style>`);
+
+		//post-selection
+		textAnnotate.isSelecting=false;
+
+		document.addEventListener('selectstart',(e)=>{
+			textAnnotate.isSelecting=true;
+		});
+
+		textAnnotate.populateFrameHover=(argm)=>{ //Setup iFrame
+
+			let mxs={types:0,alt:0};
+			let tr2='';
+			for(let i=0,len=argm.length; i<len;i++){
+				let ai=argm[i];
+				let mt=ai.types.length;
+				mxs.types=(mt>mxs.types)?mt:mxs.types;
+				let typa=typeof(ai.altText);
+				let ma=0;
+				let typAlt=false;
+				if(ai.altText!==null && typa!=='undefined'){
+					if(typa==='string'){
+						ma=1;
+						typAlt=true;
+					}else{
+						ma=ai.altText.length;
+					}		
+				}
+				mxs.alt=(ma>mxs.alt)?ma:mxs.alt;
+				tr2+=`<tr><td><button id="editBtn" ix="${ai.index}" func="editAnn" style="width: -webkit-fill-available;margin-bottom: 0.3ch;">Edit</button><br><button style="width: -webkit-fill-available" id="delBtn" ix="${ai.index}" func="remAnn">Delete</button></td><td>[${ai.index}]</td>`;
+				tr2+=`<td style="text-align:left !important;font-family: monospace;font-size: 2.3ch;width: 12ch; background-color: ${ai.hexRGB}; color: ${ai.textCol}">${ai.text}</td>`;
+				for(let k=0; k<mt; k++){
+					tr2+=`<td>${ai.types[k]}</td>`;
+				}
+				for(let k=0; k<ma; k++){
+					tr2+=`<td>${	(	(typAlt)?ai.altText:ai.altText[k]	)	}</td>`;
+				}
+				tr2+='</tr>';
+			}
+			
+			let tr=`<tr><th></th><th>index</th><th>text</th>`;
+			let thst='';
+			let thsa='';
+			if(mxs.types>0){
+				thst=`<th colspan="${mxs.types}">types</th>`;
+			}
+			if(mxs.alt>0){
+				thsa=`<th colspan="${mxs.alt}">altText</th>`;
+			}
+			tr+=thst+thsa+'</tr>'; //first row 
+			
+			
+			textAnnotate.ifrm_document.body.innerHTML=`<table>${tr}${tr2}</table>`;
+			let delBtn=textAnnotate.ifrm_document.body.querySelector('#delBtn');
+			//delBtn.textAnnotate=textAnnotate;
+			let editBtn=textAnnotate.ifrm_document.body.querySelector('#editBtn');
+			//editBtn.textAnnotate=textAnnotate;
+			let sh=textAnnotate.ifrm_document.body.scrollHeight;
+			textAnnotate.ifrm.style.setProperty( 'width', `${textAnnotate.ifrm_document.body.scrollWidth}px`, 'important' );
+			textAnnotate.ifrm.style.setProperty( 'height', `${sh}px`, 'important' );
+			textAnnotate.sct.style.setProperty( 'height', `${sh}px`, 'important' );
+			
+		};
+
+		textAnnotate.populateFrame=(ix,chkTypes,isPatt,pattData)=>{ //Setup iFrame
+			let tyx,isx,isax,gsel,mks,mksj;
+			let typPD_undef=typeof(pattData)==='undefined'?true:false;
+			let sel= isPatt===true && typPD_undef===false ? pattData[0] : '' ;
+			if(isPatt!==true){ //pattern-based
+				tyx=typeof(ix);
+				isx= tyx!=='undefined' && ix!==null ? true : false;
+				isax= isx && tyx!=='string' && ix.length>0 && typeof(ix[1])==='string' ? true :false;
+				gsel=window.getSelection();
+				//sel='';
+				mks=[];
+				mksj='';
+				if(isax){
+						sel=ix[0];
+						mksj=ix[1];
+						mks=JSON.parse(mksj[1]);
+				}else if(!isx){
+						sel=gsel.toString();
+						let s=gsel.getRangeAt(0).cloneContents();
+						let stx=getMatchingNodesShadow(s,'mark.no_hl[indexnumber]',false,false);
+						for(let i=0, len_i=stx.length; i<len_i; i++){
+							let mn=stx[i].getAttribute('indexnumber');
+							if(mn!==null){
+								mks.push(parseInt(mn));
+							}
+						}
+						mksj=JSON.stringify(mks);
+				}
+				
+			}
+
+			
+			let colrs=[];
+			let cols='';
+			let presentCols=Array.from( new Set(textAnnotate.annotations.map((a)=>{return a.hexRGB;})));
+			for (let i=0, len=presentCols.length; i<len;i++){
+				let s=`<label for="c${i}" class="col pre"> <input class="col" type="checkbox" func="checkCols" id="c${i}"><div class="col" style="background-color: ${presentCols[i]} !important;"></div></input>${presentCols[i].toLocaleUpperCase()}</label>`;
+				colrs.push(s);
+			}
+			cols=colrs.join('\n');
+			
+			let optns=[];
+			let opts='';
+			for (let i=0, len=textAnnotate.options.length; i<len;i++){
+				let opi='opt'+i;
+				let s=`<label for="${opi}">
+				<input type="checkbox" id="${opi}" class="types"></input>${textAnnotate.options[i]}</label>`;
+				optns.push(s);
+			}
+			opts=optns.join('\n');
+
+			textAnnotate.ifrm_document.body.innerHTML=`
+		<section style="display: flex; flex-direction: row; place-items: flex-start;"> <div id="selText" style="border:buttonface; border-width: 0.28ch; border-style: groove; padding: 0.2ch;" title="${ isPatt===true ? 'Enter search pattern (regex, without bounding forward slashes/plaintext)' : ''}"${ isPatt===true ? ' contenteditable' : ' selmarks="'+mksj+'"'}>${sel}</div>${ isPatt===true ? '<section style="display: flex; flex-direction:column;"><section style="display: flex;flex-direction: row;"><input type="checkbox" id="plainSearch" style="place-self: center"></input><span style="text-wrap: nowrap;align-self: center;">Plain text</span></section><section style="display: flex;flex-direction: row;"><input type="checkbox" id="caseInsens" style="place-self: center"></input><span style="text-wrap: nowrap;align-self: center;">Case-insensitive</span></section></section>' : ''}<button id="hideFrame" style="float:right;width: 4.3ch;color: red;background: black;border: 1px buttonface outset;margin-left: 0.02ch;">❌</button></section>
+		<section>
+			<section id="nameForm">
+			<form>
+		  <div class="multiselect">
+			<div class="selectBox" func="showCheckboxes" args="false">
+			  <select>
+				<option>Select types</option>
+			  </select>
+			  <div class="overSelect"></div>
+			</div>
+			<div id="checkboxes" class="expanded">
+			  ${opts}
+			</div>
+		  </div>
+		  <section id="altTexts" style="margin-top: 0.3ch;">
+			<span>Alt text:</span><br>
+				<section style="margin-bottom: 0.7ch;" class="altTextInstance">	<textarea func="setHeights" class="altText"></textarea>	<button class="newAlt" style="filter: hue-rotate(212deg) saturate(10); width: 4.3ch;">➕</button>	<button id="${ isPatt===true ? 'addOpt_patt' : 'addOpt'}">Add as type</button></section>
+		  </section>
+		</form>
+
+
+		</section>
+
+		<section>
+			<form>
+		  <div class="multiselect">
+			<div class="selectBox" func="showCheckboxes" args="true">
+			  <select>
+				<option>Select RGB</option>
+			  </select>
+			  <div class="overSelect"></div>
+			</div>
+			<div id="checkboxesCol" class="expanded">
+			  <label for="c1" class="col"> <input class="col" type="checkbox" func="checkCols" id="c1"><input class="col" type="color" style="width: 4.808ch !important; margin-right: 0.48ch !important; height: auto !important; background-color: #ffff00 !important; border: #ffff00 !important;" func="customCol" id="vis" value="#ffff00"></input>Custom</label>
+			  ${cols}
+			</div>
+		  </div>
+		</form>
+		</section>
+		<button id="${ isPatt===true ? 'pattSearch' : 'nameSel'}">${ isPatt===true ? 'Search pattern!' : 'Name selection!'}</button>
+		</section>`;
+		
+		let idc=textAnnotate.ifrm_document;
+
+		if(isPatt!==true && isx && !isax){
+			let ax=textAnnotate.annotations[ix];
+			let nameSel=idc.getElementById('nameSel');
+			nameSel.setAttribute('ix',ix);
+			let selText=idc.getElementById('selText');
+			selText.innerText=ax.text;
+			let altTxts=[...idc.getElementsByClassName('altText')];
+			if (typeof(ax.altText)==='string'){
+				altTxts[0].value=ax.altText;
+			}else if(ax.altText!==null){
+				for(let i=0, len=ax.altText.length; i<len; i++){
+					altTxts=[...idc.getElementsByClassName('altText')];
+					let ati=altTxts[i];
+					ati.value=ax.altText[i];
+					if(i<len-1){
+						ati.nextElementSibling.click();
+					}
+				}
+			}
+			let chks=[...idc.querySelectorAll('#checkboxes input[type="checkbox"]')];
+			for(let i=0, len_i=ax.types.length; i<len_i; i++){
+				let ti=ax.types[i];
+				for(let k=0, len_k=chks.length; k<len_k; k++){
+					let ck=chks[k];
+					let p=ck.parentElement;
+					if(p.innerText===ti){
+						ck.checked=true;
+					}
+				}
+			}
+			
+			chks=[...idc.querySelectorAll('#checkboxesCol input[type="checkbox"]')]; //RGB
+			for(let k=0, len_k=chks.length; k<len_k; k++){
+				let ck=chks[k];
+				if(ck.parentElement.innerText===ax.hexRGB){
+					ck.checked=true;
+					break;
+				}
+			}
+		}
+
+		if(typeof(chkTypes)!=='undefined'){
+				let chks=[...idc.querySelectorAll('#checkboxes input[type="checkbox"]')];
+			for(let i=0, len_i=chkTypes[0].length; i<len_i; i++){
+				let ti=chkTypes[0][i];
+				for(let k=0, len_k=chks.length; k<len_k; k++){
+					let ck=chks[k];
+					let p=ck.parentElement;
+					if(p.innerText===ti){
+						ck.checked=true;
+					}
+				}
+			}
+			
+			chks=[...idc.querySelectorAll('#checkboxesCol input[type="checkbox"]')]; //RGB
+			let fnd=false;
+			for(let i=0, len_i=chkTypes[1].length; i<len_i; i++){
+				let ti=chkTypes[1][i];
+				for(let k=0, len_k=chks.length; k<len_k; k++){
+					let ck=chks[k];
+					let p=ck.parentElement;
+					if(p.innerText===ti){
+						ck.checked=true;
+						fnd=true;
+						break;
+					}
+				}
+			}
+			
+			if(fnd===false){
+				let cl=chks[0].nextElementSibling;
+				cl.value=typeof (chkTypes[1][0])!=='undefined'?chkTypes[1][0]:'#ffff00';
+				cl.dispatchEvent(new Event('input'));
+				chks[0].checked=true;
+			}
+		}
+		
+			if(isPatt===true){
+				textAnnotate.sct.style.setProperty( 'display', 'inline-block','important' );
+				if(typPD_undef===false){					
+					idc.getElementById('plainSearch').checked=pattData[1];
+					idc.getElementById('caseInsens').checked=pattData[2];
+				}
+			}
+
+		};
+	
+}
+	
+	if(noMark!==true){
+		textAnnotate.perChar(sel); // initialise; choose the relevant element (that contains all the text you wish to annotate)
+		isMarked=true;
+					chrome.runtime.sendMessage({
+                        message: isMarked ? 'marked' : 'not marked'
+                    }, function(response) {;});
+		if(textAnnotate.selector!==null){
+			updateAnnotations();
+		}
+	}
+
+		document.addEventListener('pointermove',(e)=>{
+			textAnnotate.logMatchingAnnotations(e);
+		});
+		document.addEventListener('touchend',(e)=>{ //For mobile
+			textAnnotate.logMatchingAnnotations(e);
+		});
+
+}
+
+function findURLmatch() {
+	var blSite='';
+	var blFcn=``;
+	var found=false;
+    for (let i = 0, len=addrs.length; i<len; i++) {
+			if(addrs[i]===window.location.href){
+				   return [true,addrs[i],JSON.parse(fcns[i]),i];
+			}
+		//console.log(found);
+	}
+	return [false,'','',null];
+}
+
+function getMatchingNodesShadow(docm, slc, isNodeName, onlyShadowRoots){
+	
+	function keepMatchesShadow(els,slcArr,isNodeName){
+	   if(slcArr[0]===false){
+		  return els;
+	   }else{
+			let out=[];
+			for(let i=0, len=els.length; i<len; i++){
+			  let n=els[i];
+					for(let k=0, len_k=slcArr.length; k<len_k; k++){
+						let sk=slcArr[k];
+						if(isNodeName){
+							if((n.nodeName.toLocaleLowerCase())===sk){
+								out.push(n);
+							}
+						}else{ //selector
+							   if(!!n.matches && typeof n.matches!=='undefined' && n.matches(sk)){
+								  out.push(n);
+							   }
+						}
+					}
+			}
+			return out;
+		}
+	}
+
+	let slcArr=[];
+	if(typeof(slc)==='string'){
+		slc=(isNodeName && slc!==false)?(slc.toLocaleLowerCase()):slc;
+		slcArr=[slc];
+	}else if(typeof(slc[0])!=='undefined'){
+		for(let i=0, len=slc.length; i<len; i++){
+			let s=slc[i];
+			slcArr.push((isNodeName && slc!==false)?(s.toLocaleLowerCase()):s)
+		}
+	}else{
+		slcArr=[slc];
+	}
+	var shrc=[docm];
+	var shrc_l=1;
+	var out=[];
+	let srCnt=0;
+
+	while(srCnt<shrc_l){
+		let curr=shrc[srCnt];
+		let sh=(!!curr.shadowRoot && typeof curr.shadowRoot !=='undefined')?true:false;
+		let nk=keepMatchesShadow([curr],slcArr,isNodeName);
+		let nk_l=nk.length;
+		
+		if( !onlyShadowRoots && nk_l>0){
+			for(let i=0; i<nk_l; i++){
+				out.push(nk[i]);
+			}
+		}
+		
+        for(let i=curr.childNodes.length-1; i>=0; i--){
+            shrc.splice(srCnt+1,0,curr.childNodes[i]);
+		}
+		
+		if(sh){
+			   let cs=curr.shadowRoot;
+			   let csc=[...cs.childNodes];
+			   if(onlyShadowRoots){
+				  if(nk_l>0){
+				   out.push({root:nk[0], childNodes:csc});
+				  }
+			   }
+			   
+                for(let i=csc.length-1; i>=0; i--){
+                    shrc.splice(srCnt+1,0,csc[i]);
+				}
+		}
+
+		srCnt++;
+		shrc_l=shrc.length;
+	}
+	
+	return out;
+}
+
+function elRemover(el){
+	if(typeof el!=='undefined' && !!el){
+	if(typeof el.parentNode!=='undefined' && !!el.parentNode){
+		el.parentNode.removeChild(el);
+	}
+	}
+}
+
+async function start_up_storage(){
+	return new Promise(function(resolve) {
+		chrome.storage.local.get(null, function(items) {
+							let setObj={}
+							let setObjct=false;
+
+							if(!!items.addrs_list && typeof  items.addrs_list!=='undefined'){
+								addrs=JSON.parse(items.addrs_list);
+							}else{
+								setObj["addrs_list"]='[]';
+								setObjct=true;
+							}
+							
+							if(!!items.fcn_list && typeof  items.fcn_list!=='undefined'){
+								fcns=JSON.parse(items.fcn_list);
+							}else{
+								setObj["fcn_list"]='[]';
+								setObjct=true;
+							}
+								if(setObjct){
+									chrome.storage.local.set(setObj, function() {
+										chrome.storage.local.get(null, function(items) {
+													 urlMatch=findURLmatch();
+													resolve();
+										});
+									});
+								}else{
+									 urlMatch=findURLmatch();
+									resolve();
+								}
+		});
+	});
+}
+
+var fs={
+				markPage: (s)=>{
+					doMark(s);
+				},
+				markPageSave: (s)=>{
+					doMark(s,true);
+					chrome.runtime.sendMessage({
+                        message:'doSave',
+						html: document.documentElement.outerHTML
+                    }, function(response) {;})
+				},
+				setupPatt: (s)=>{ //setup pattent-based annotation window
+					textAnnotate.populateFrame(undefined,undefined,true);
+				}
+}
+
+function start_up(){
+	if(firstDone===true){
+		return;
+	}
+	firstDone=true;
+	try{
+		(async ()=>{
+			await start_up_storage();
+			let styls=[...document.head.getElementsByTagName('STYLE')].find(s=>{return s.innerHTML.includes(markStyl);})
+			isMarked= typeof(styls)==='undefined' ? false : true;
+			if(urlMatch[0] || isMarked){
+				let u2=urlMatch[2];
+				if(!isMarked){ // not local
+					doMark(u2.selector,false,false);
+				}else{
+					doMark(false,false,true);
+				}
+				for(k in u2){
+					textAnnotate[k]=u2[k];
+				}
+					let stx=getMatchingNodesShadow(document,'mark[indexnumber]',false,false);
+										
+					if(isMarked && textAnnotate.markText===''){
+							let mt=[];
+							for(let i=0, len_i=stx.length; i<len_i; i++){
+								mt.push(stx[i].textContent);
+							}
+							textAnnotate.markText=mt.join('');
+					}
+				for(let x=0, len_x=textAnnotate.annotations.length; x<len_x; x++){
+						let ax=textAnnotate.annotations[x];
+						let stx2=getMatchingNodesShadow(document,'mark[indexnumber]',false,false).filter(m=>{let n=parseInt(m.getAttribute('indexnumber')); return ax.nodeIndexes.includes(n); });
+						for(let i=0, len_i=stx2.length; i<len_i; i++){
+							let stx2i=stx2[i];
+							stx2i.className='';
+							stx2i.style.backgroundColor=ax.hexRGB;
+							stx2i.style.color=ax.textCol;
+						}
+				}
+			}
+		})();
+	}catch(e){;}
+}
+
+if (
+  (document.readyState === "complete") ||
+  (document.readyState !== "loading" && !document.documentElement.doScroll)
+) {
+  start_up();
+} else {
+  document.addEventListener("DOMContentLoaded", start_up);
+}
+
+function gotMessage(message, sender, sendResponse) {
+    let m=message.message;
+	if(m==='getStatus'){ //Send back whether the page is already marked
+	tb_id=message.tabId;
+		chrome.runtime.sendMessage({
+                        message: isMarked ? 'marked' : 'not marked'
+                    }, function(response) {;});
+	}else{
+		fs[m[0]](m[1]);
+	}
+}
+
+chrome.runtime.onMessage.addListener(gotMessage);
