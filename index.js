@@ -49,7 +49,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 		mkp.style.display='none';
 		mkps.style.display='none';
 		txtar.style.display='none';
-		spt.style.marginTop='';
+		spt.style.display='';
 	}else if(m==='doSave'){
 		let url = 'data:text/html;charset=utf-8,' + encodeURIComponent(message.html);
 		let ttl=sender.tab.title;
