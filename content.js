@@ -1217,7 +1217,7 @@ var fs={
 				},
 				markPageSave: (s)=>{
 					doMark(s,true);
-                    let ttl=tb_ttl.endsWith('.') ? tb_ttl+'html' : tb_ttl+'.html';
+                    let ttl=tb_ttl.endsWith('.html') ? tb_ttl : (tb_ttl.endsWith('.')?tb_ttl+'html':tb_ttl+'.html');
                     savePage(ttl);
 				},
 				setupPatt: (s)=>{ //setup pattent-based annotation window
