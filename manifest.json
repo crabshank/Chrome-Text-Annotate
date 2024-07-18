@@ -16,8 +16,7 @@
 	"tabs",
 	"activeTab",
 	"storage",
-	"unlimitedStorage",
-	"downloads"
+	"unlimitedStorage"
   ],
   "action": {
     "default_icon": "textAnnotate.png",
