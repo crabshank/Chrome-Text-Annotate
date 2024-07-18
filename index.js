@@ -36,7 +36,8 @@ function send(message) {
 		let tid=tabs[0].id;
       let msg = {
         message: message,
-		tabId: tid
+		tabId: tid,
+        title:tabs[0].title
       };
       chrome.tabs.sendMessage(tid, msg);
     }
@@ -50,13 +51,5 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 		mkps.style.display='none';
 		txtar.style.display='none';
 		spt.style.display='';
-	}else if(m==='doSave'){
-		let url = 'data:text/html;charset=utf-8,' + encodeURIComponent(message.html);
-		let ttl=sender.tab.title;
-		ttl=ttl.endsWith('.') ? ttl+'html' : ttl+'.html';
-		chrome.downloads.download({
-			url,
-			filename: ttl
-		});
 	}
 });
