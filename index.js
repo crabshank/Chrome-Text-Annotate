@@ -2,17 +2,20 @@ send('getStatus');
 
 let mkp=document.getElementById('markPage');
 let mkps=document.getElementById('markPageSave');
+let mkpsTxt=document.getElementById('markPageSaveText');
 let txtar=document.getElementById('txta');
 let spt=document.getElementById('setupPatt');
 
 window.onclick=(e)=>{
 	t=e.target;
-	if(t===mkp || t===mkps){
+	if(t===mkp || t===mkps || t===mkpsTxt){
 		send([t.id,txtar.value]);
+		window.close();
 	}else if(t===spt){ //Add to options
 		send([t.id,null]);
 		window.close();
 	}
+	
 };
 
 function setHeight(el){
@@ -49,6 +52,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 	if(m==='marked'){
 		mkp.style.display='none';
 		mkps.style.display='none';
+		mkpsTxt.style.display='none';
 		txtar.style.display='none';
 		spt.style.display='';
 	}

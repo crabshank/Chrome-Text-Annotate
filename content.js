@@ -7,11 +7,10 @@ var markStyl='mark.no_hl[indexnumber]{background-color:unset !important; color:u
 var tb_id=null;
 var tb_ttl=document.title;
 
-function savePage(filename) {
-  let htmlContent = [document.documentElement.outerHTML];
-  let bl = new Blob(htmlContent, {type: "text/html"});
-  let a = document.createElement("a");
-  a.href = URL.createObjectURL(bl);
+function savePage(filename, htmlText) {
+  let htmlContent = typeof(htmlText)==='string' ? htmlText : document.documentElement.outerHTML  ;
+  let a = document.createElement('a');
+  a.href ='data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent);
   a.download = filename;
   a.style.display = 'none';
   document.body.appendChild(a);
@@ -82,52 +81,60 @@ textAnnotate.lastAnnotations=[]; //Store last annotations
 textAnnotate.options=[]; //Store names to choose from
 textAnnotate.markText='';
 
-textAnnotate.perChar=function(el){ //Create per-character mark tags
-	let n=getMatchingNodesShadow(el, '#text', true, false).filter((t)=>{return t.parentElement.tagName!=='TITLE' ;});
+textAnnotate.perChar=function(els){ //Create per-character mark tags
 	let allTextNodeParentEls=[];
+	let elsArr=Array.isArray(els) ? els : [els];
 	let cnt=0;
 	let defCol;
-	for(let k=0, len_k=n.length; k<len_k; k++){
-        let diffCol=false;
-		let nk=n[k];
-		let pp=nk.parentElement;
-
-		let chs=getMatchingNodesShadow(pp, false, true,false);
-		if(!chs.includes(textAnnotate.ifrm) && !chs.includes(textAnnotate.sct) && !chs.includes(textAnnotate.scr)){
-            let wcs=window.getComputedStyle(pp);
-            let txc=wcs.color;
-			let txcAtt=' '; 
-            if(cnt===0){
-                defCol=txc;
-				txcAtt=` textCol="${txc}" `;
-            }
-			let dtc=nk.textContent;
-            if(txc!==defCol){
-				txcAtt=` textCol="${txc}" `;
-                diffCol=true;
-            }
-			nk.textContent=`<mark${txcAtt}indexnumber="${cnt}" class="no_hl">`+dtc[0]+'</mark>';
-            textAnnotate.markText+=dtc[0];
-			nk.indexNumber=cnt;
-			
+	for(let j=0, len_j=elsArr.length; j<len_j; j++){
+		let tmp_allTextNodeParentEls=[];
+		let el=elsArr[j];
+		let n=getMatchingNodesShadow_order(el, '#text', true, false)/*.filter((t)=>{return t.parentElement.tagName!=='TITLE' ;})*/;
+		for(let k=0, len_k=n.length; k<len_k; k++){
+			let diffCol=false;
+			let nk=n[k];
+			let pp=nk.parentElement;
 			if(!allTextNodeParentEls.includes(pp)){
-				allTextNodeParentEls.push(pp);
-			}
-			let lastNode=nk;
-			cnt++;
-			for(let i=1, len_i=dtc.length; i<len_i; i++){
-                if(diffCol===true){
-					txcAtt=` textCol="${txc}" `;
-                }
-				nt = document.createTextNode(`<mark${txcAtt}indexnumber="${cnt}" class="no_hl">`+dtc[i]+'</mark>');
-                textAnnotate.markText+=dtc[i];
-				insertAfter(nt, lastNode);
-				nt.indexNumber=cnt;
-				cnt++;
-				lastNode=nt;
-			}
+				let chs=getMatchingNodesShadow_order(pp, false, true,false);
+				if(!chs.includes(textAnnotate.ifrm) && !chs.includes(textAnnotate.sct) && !chs.includes(textAnnotate.scr)){
+					let wcs=window.getComputedStyle(pp);
+					let txc=wcs.color;
+					let txcAtt=' '; 
+					if(cnt===0){
+						defCol=txc;
+						txcAtt=` textCol="${txc}" `;
+					}
+					let dtc=nk.textContent;
+					if(txc!==defCol){
+						txcAtt=` textCol="${txc}" `;
+						diffCol=true;
+					}
+					nk.textContent=`<mark${txcAtt}indexnumber="${cnt}" class="no_hl">`+dtc[0]+'</mark>';
+					textAnnotate.markText+=dtc[0];
+					nk.indexNumber=cnt;
+					
+					if(!tmp_allTextNodeParentEls.includes(pp)){
+						tmp_allTextNodeParentEls.push(pp);
+					}
+					let lastNode=nk;
+					cnt++;
+					for(let i=1, len_i=dtc.length; i<len_i; i++){
+						txcAtt= diffCol===true ? ` textCol="${txc}" ` : ' ';
+						nt = document.createTextNode(`<mark${txcAtt}indexnumber="${cnt}" class="no_hl">`+dtc[i]+'</mark>');
+						textAnnotate.markText+=dtc[i];
+						insertAfter(nt, lastNode);
+						nt.indexNumber=cnt;
+						cnt++;
+						lastNode=nt;
+					}
+				}
+		}
+		}
+		for(let k=0, len_k=tmp_allTextNodeParentEls.length; k<len_k; k++){
+			allTextNodeParentEls.push(tmp_allTextNodeParentEls[k]);
 		}
 	}
+	
 	let styl='<style>'+markStyl+'</style>'
 	document.head.insertAdjacentHTML('afterbegin',styl);
 	for(let k=0, len_k=allTextNodeParentEls.length; k<len_k; k++){
@@ -141,7 +148,7 @@ textAnnotate.nameSelection=function(names, altText,hexRGB,ix){ //Create annotati
 	if(ix!==null){
 		ixt=parseInt(ix);
 		let ax=textAnnotate.annotations[ixt];
-		let stx2=getMatchingNodesShadow(document,'mark[indexnumber]',false,false).filter(m=>{let n=parseInt(m.getAttribute('indexnumber')); return ax.nodeIndexes.includes(n); });
+		let stx2=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false).filter(m=>{let n=parseInt(m.getAttribute('indexnumber')); return ax.nodeIndexes.includes(n); });
 		let srgb=(typeof(hexRGB)==='string')?hexRGB:'#FFFF00';
 		for(let i=0, len_i=stx2.length; i<len_i; i++){
 			stx2[i].style.backgroundColor=srgb;
@@ -178,7 +185,7 @@ textAnnotate.nameSelection=function(names, altText,hexRGB,ix){ //Create annotati
         let idc=textAnnotate.ifrm_document;
         let selTxt=idc.getElementById('selText');
         let stx=JSON.parse(selTxt.getAttribute('selmarks'));
-        let stx2=getMatchingNodesShadow(document,'mark.no_hl[indexnumber]',false,false);
+        let stx2=getMatchingNodesShadow_order(document,'mark.no_hl[indexnumber]',false,false);
 		let stx_doc=[];
 		let firstTCol;
 		stx_doc.length=stx2.length;
@@ -286,7 +293,7 @@ textAnnotate.logMatchingAnnotations=function(event){ //Pointer event; Log matchi
 			}
 		}
 	}else{
-		let chd=getMatchingNodesShadow(t, msl, false, false);
+		let chd=getMatchingNodesShadow_order(t, msl, false, false);
 		let mtc=[];
 		for(let i=0, len_i=chd.length; i<len_i; i++){
 				let ci=chd[i];
@@ -332,7 +339,7 @@ textAnnotate.logMatchingAnnotations=function(event){ //Pointer event; Log matchi
 }
 
 textAnnotate.hlMarks=function(el){ //Highlight marks after textAnnotate.annotations has already been assigned
-	let mks=getMatchingNodesShadow( ( (el===null || typeof(el)==='undefined' )? document : el ) ,`mark[indexnumber]`,false,false);
+	let mks=getMatchingNodesShadow_order( ( (el===null || typeof(el)==='undefined' )? document : el ) ,`mark[indexnumber]`,false,false);
 	for(let i=0, len_i=textAnnotate.annotations.length; i<len_i; i++){
 		let ai=textAnnotate.annotations[i];
 		for(let k=0, len_k=ai.nodeIndexes.length; k<len_k; k++){
@@ -379,7 +386,7 @@ textAnnotate.remove=function(n){  //Remove annotations as array; n is number or 
 	for(let k=0, len_k=arr.length; k<len_k; k++){
 		let nk=arr[k];
 		let ank=textAnnotate.annotations[nk];
-		let mk=getMatchingNodesShadow(document,`mark[indexnumber]`,false,false);
+		let mk=getMatchingNodesShadow_order(document,`mark[indexnumber]`,false,false);
 		let mks=[];
 		mks.length=mk.length;
 		for(let i=0, len_i=mks.length; i<len_i; i++){
@@ -489,7 +496,7 @@ textAnnotate.searchSelect=function(mks,hexRGB,types,altText){	//search for marke
 				an.nodeIndexes=selNodes;
 			}
 
-        let stx2=getMatchingNodesShadow(document,'mark[indexnumber]',false,false);
+        let stx2=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false);
 		let stx_doc=[];
 		let firstTCol;
 		stx_doc.length=stx2.length;
@@ -525,8 +532,8 @@ textAnnotate.searchSelect=function(mks,hexRGB,types,altText){	//search for marke
 }
 
 function doMark(s, markOnly, noMark){
-	let selectEl=getMatchingNodesShadow(document,s,false,false);
-	let sel= selectEl.length===1 && s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? selectEl[0] : document.documentElement;
+	let selectEls=getMatchingNodesShadow_order(document,s,false,false);
+	let sel= s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? selectEls : [document.documentElement];
 	textAnnotate.selector= markOnly===true || isMarked===true  ? null : s ;
 	if(sel===null && s!==false){
 		alert('Invalid CSS selector!');
@@ -889,7 +896,7 @@ function doMark(s, markOnly, noMark){
 				}else if(!isx){
 						sel=gsel.toString();
 						let s=gsel.getRangeAt(0).cloneContents();
-						let stx=getMatchingNodesShadow(s,'mark.no_hl[indexnumber]',false,false);
+						let stx=getMatchingNodesShadow_order(s,'mark.no_hl[indexnumber]',false,false);
 						for(let i=0, len_i=stx.length; i<len_i; i++){
 							let mn=stx[i].getAttribute('indexnumber');
 							if(mn!==null){
@@ -1057,7 +1064,7 @@ function doMark(s, markOnly, noMark){
 }
 	
 	if(noMark!==true){
-		textAnnotate.perChar(sel); // initialise; choose the relevant element (that contains all the text you wish to annotate)
+		textAnnotate.perChar(sel); // initialise; choose the relevant elements (that contains all the text you wish to annotate)
 		isMarked=true;
 					chrome.runtime.sendMessage({
                         message: isMarked ? 'marked' : 'not marked'
@@ -1089,7 +1096,7 @@ function findURLmatch() {
 	return [false,'','',null];
 }
 
-function getMatchingNodesShadow(docm, slc, isNodeName, onlyShadowRoots){
+function getMatchingNodesShadow_order(docm, slc, isNodeName, onlyShadowRoots){
 	
 	function keepMatchesShadow(els,slcArr,isNodeName){
 	   if(slcArr[0]===false){
@@ -1220,6 +1227,34 @@ var fs={
                     let ttl=tb_ttl.endsWith('.html') ? tb_ttl : (tb_ttl.endsWith('.')?tb_ttl+'html':tb_ttl+'.html');
                     savePage(ttl);
 				},
+				markPageSaveText: (s)=>{
+					doMark(s,true);
+					let ttl=tb_ttl;
+					if(ttl.endsWith('.html')){
+						ttl=ttl.split('.html')[0]+'.txt.html';
+					}else if(ttl.endsWith('.txt')){
+						ttl+='.html';
+					}else if(ttl.endsWith('.')){
+						ttl+='txt.html';
+					}else{
+						ttl+='.txt.html';
+					}
+					let mks=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false).map((t)=>{
+						return t.outerHTML.replaceAll(/ textcol\s*\=\s*\"[^\"]+\"/g,'');
+					});
+					let markTxt_html=`<html>
+					<head>
+					<meta charset="UTF-8">
+					<style>${markStyl}</style>
+					<head>
+					<body>
+					<pre>
+					${mks.join('')}
+					</pre>
+					</body>
+					</html>`
+                    savePage(ttl,markTxt_html);
+				},
 				setupPatt: (s)=>{ //setup pattent-based annotation window
 					textAnnotate.populateFrame(undefined,undefined,true);
 				}
@@ -1245,7 +1280,7 @@ function start_up(){
 				for(k in u2){
 					textAnnotate[k]=u2[k];
 				}
-					let stx=getMatchingNodesShadow(document,'mark[indexnumber]',false,false);
+					let stx=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false);
 										
 					if(isMarked && textAnnotate.markText===''){
 							let mt=[];
@@ -1256,7 +1291,7 @@ function start_up(){
 					}
 				for(let x=0, len_x=textAnnotate.annotations.length; x<len_x; x++){
 						let ax=textAnnotate.annotations[x];
-						let stx2=getMatchingNodesShadow(document,'mark[indexnumber]',false,false).filter(m=>{let n=parseInt(m.getAttribute('indexnumber')); return ax.nodeIndexes.includes(n); });
+						let stx2=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false).filter(m=>{let n=parseInt(m.getAttribute('indexnumber')); return ax.nodeIndexes.includes(n); });
 						for(let i=0, len_i=stx2.length; i<len_i; i++){
 							let stx2i=stx2[i];
 							stx2i.className='';
