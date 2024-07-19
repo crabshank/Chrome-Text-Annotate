@@ -802,7 +802,11 @@ function doMark(s, markOnly, noMark){
 					if(!textAnnotate.options.includes(opt)){
 						textAnnotate.options.push(opt);
 						let slt=textAnnotate.ifrm_document.getElementById('selText');
-						textAnnotate.populateFrame([slt.innerText,slt.getAttribute('selmarks')],[[...textAnnotate.ifrm_document.querySelectorAll('#checkboxes input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;}) , [...textAnnotate.ifrm_document.querySelectorAll('#checkboxesCol input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;})],(t.id==='addOpt_patt' ? true : false),[textAnnotate.ifrm_document.getElementById('selText').innerText,textAnnotate.ifrm_document.getElementById('plainSearch').checked,textAnnotate.ifrm_document.getElementById('caseInsens').checked]);
+						if(t.id==='addOpt_patt'){
+							textAnnotate.populateFrame([slt.innerText,slt.getAttribute('selmarks')],[[...textAnnotate.ifrm_document.querySelectorAll('#checkboxes input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;}) , [...textAnnotate.ifrm_document.querySelectorAll('#checkboxesCol input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;})],true,[textAnnotate.ifrm_document.getElementById('selText').innerText,textAnnotate.ifrm_document.getElementById('plainSearch').checked,textAnnotate.ifrm_document.getElementById('caseInsens').checked]);
+						}else{
+							textAnnotate.populateFrame([slt.innerText,slt.getAttribute('selmarks')],[[...textAnnotate.ifrm_document.querySelectorAll('#checkboxes input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;}) , [...textAnnotate.ifrm_document.querySelectorAll('#checkboxesCol input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;})]);
+						}
 					}
 					updateAnnotations();
 			}
