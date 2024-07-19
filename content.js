@@ -7,6 +7,103 @@ var markStyl='mark.no_hl[indexnumber]{background-color:unset !important; color:u
 var tb_id=null;
 var tb_ttl=document.title;
 
+function getParent(el,elementsOnly,doc_head_body){
+	if(!!el && typeof el!=='undefined'){
+		let out=null;
+		let curr=el;
+		let end=false;
+		
+		while(!end){
+			if(!!curr.parentNode && typeof curr.parentNode!=='undefined'){
+				out=curr.parentNode;
+				curr=out;
+				end=(elementsOnly && out.nodeType!=1)?false:true;
+			}else if(!!curr.parentElement && typeof curr.parentElement!=='undefined'){
+					out=curr.parentElement;
+					end=true;
+					curr=out;
+			}else if(!!curr.host && typeof curr.host!=='undefined'){
+					out=curr.host;
+					end=(elementsOnly && out.nodeType!=1)?false:true;
+					curr=out;
+			}else{
+				out=null;
+				end=true;
+			}
+		}
+		
+		if(out!==null){
+			if(!doc_head_body){
+				if(out.nodeName==='BODY' || out.nodeName==='HEAD' || out.nodeName==='HTML'){
+					out=null;
+				}
+			}
+		}
+		
+		return out;
+	}else{
+		return null;
+	}
+}
+
+function getAncestors(el, elementsOnly, elToHTML, doc_head_body, notInShadow){
+	let curr=el;
+	let ancestors=[el];
+	let outAncestors=[];
+	let end=false;
+	
+	while(!end){
+		let p=getParent(curr,elementsOnly,doc_head_body);
+		if(p!==null){
+			if(elToHTML){
+				ancestors.push(p);
+			}else{
+				ancestors.unshift(p)
+			}
+			curr=p;
+		}else{
+			end=true;
+		}
+	}
+	if(notInShadow){
+		if(elToHTML){
+			for(let i=ancestors.length-1; i>=0; i--){
+				outAncestors.unshift(ancestors[i]);
+				if(!!ancestors[i].shadowRoot && typeof ancestors[i].shadowRoot !=='undefined'){
+					i=0;
+				}
+			}
+		}else{
+			for(let i=0, len=ancestors.length; i<len; i++){
+				outAncestors.push(ancestors[i]);
+				if(!!ancestors[i].shadowRoot && typeof ancestors[i].shadowRoot !=='undefined'){
+					i=len-1;
+				}
+			}
+		}
+	}else{
+		outAncestors=ancestors;
+	}
+	return outAncestors;
+}
+
+function getScrollY(anc){
+	let ty = [		window?.pageYOffset,
+											window?.scrollY,
+											document?.documentElement?.scrollTop,
+											document?.body?.parentNode?.scrollTop,
+											document?.body?.scrollTop,
+											document?.head?.scrollTop,
+											0
+										];
+		for(let k=0, len_k=anc.length; k<len_k; k++){
+			ty.push(anc[k]?.scrollTop);
+		}
+	ty=ty.filter( (p)=>{return p>=0} );
+										
+	return Math.max(...ty);
+}
+
 function savePage(filename, htmlText) {
   let htmlContent = typeof(htmlText)==='string' ? htmlText : document.documentElement.outerHTML  ;
   let a = document.createElement('a');
@@ -529,6 +626,24 @@ textAnnotate.searchSelect=function(mks,hexRGB,types,altText){	//search for marke
 			textAnnotate.annotations.push(an); // [ [ ALL INDEX NUMBERS HERE! ], ... ]
     }
 	updateAnnotations();
+}
+
+textAnnotate.jump=function(i){  //Jump to annotation by index
+		if(!(i>=0 && i<textAnnotate.annotations.length)){
+			console.error(`Argument must be between 0 and ${textAnnotate.annotations.length-1}!`);
+			return;
+		}
+		let ix=textAnnotate.annotations[i].nodeIndexes[0];
+		let el=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false).find((m)=>{let n=parseInt(m.getAttribute('indexnumber')); return n===ix; });
+		let anc=getAncestors(el,true,true,false,true);
+		 for(let i=0, len_i=anc.length; i<len_i; i++){
+			let sy=getScrollY(anc);
+			anc[i].scrollIntoView({behavior: "instant", block: 'start', inline: "start"});
+			let sy2=getScrollY(anc);
+			if(sy!==sy2){
+				break;
+			}
+		}
 }
 
 function doMark(s, markOnly, noMark){
