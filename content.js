@@ -1367,7 +1367,7 @@ var fs={
 					<style>${markStyl}</style>
 					<head>
 					<body>
-					<pre>
+					<pre style="white-space: pre-wrap !important;">
 					${mks.join('')}
 					</pre>
 					</body>
