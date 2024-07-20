@@ -543,15 +543,27 @@ textAnnotate.removeOptions=function(opt){	//'opt' is a string or array of string
 
 textAnnotate.findMarks=function(pat,plain,case_insensitive){	//search for marked text
     let str=textAnnotate.markText;
-    str = case_insensitive===true ? str.toLocaleLowerCase() : str ;
     let out=[];
     if(plain===true){
+		let strRaw=str;
+		let patRaw=pat;
+		if(case_insensitive===true){
+			str=str.toLocaleLowerCase();
+			pat=pat.toLocaleLowerCase();
+		}
         let a=str.indexOf(pat);
-        let sfl=pat.length;
         let pl=pat.length;
         while(a!==-1){
-            out.push({text:pat, markRange:[a,a+pl-1]});
-            a=str.indexOf(pat,a+sfl);
+			let ed=a+pl-1;
+			let tx=pat;
+			if(case_insensitive){
+				tx='';
+				 for(let i=a; i<=ed; i++){
+					 tx+=strRaw[i];
+				 }
+			}
+            out.push({text:tx, markRange:[a,ed]});
+            a=str.indexOf(pat,a+pl);
         }
     }else{ //regex
         let a=[...str.matchAll(pat)];
@@ -743,8 +755,8 @@ function doMark(s, markOnly, noMark){
 				let idc=textAnnotate.ifrm_document;
 				let patEl=idc.getElementById('selText');
 				let isPlain= idc.getElementById('plainSearch').checked ? true : false ;
-				let p= isPlain ? patEl.innerText : new RegExp(patEl.innerText, "g");
 				let isCaseInsens= idc.getElementById('caseInsens').checked ? true : false ;
+				let p= isPlain ? patEl.innerText : new RegExp(patEl.innerText, (isCaseInsens ? "gi" : "g"));
 				let mks=textAnnotate.findMarks(p,isPlain,isCaseInsens);
 				let cols=null;
 				let chkd=[...textAnnotate.ifrm_document.querySelectorAll('input.types[type="checkbox"]:checked')].map((c)=>{return c.parentElement.innerText;});
@@ -1401,7 +1413,7 @@ function start_up(){
 				}
 					let stx=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false);
 										
-					if(isMarked && textAnnotate.markText===''){
+					if(isMarked && (textAnnotate.markText==='' || textAnnotate.markText===null ) ){
 							let mt=[];
 							for(let i=0, len_i=stx.length; i<len_i; i++){
 								mt.push(stx[i].textContent);
