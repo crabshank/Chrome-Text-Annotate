@@ -1418,7 +1418,7 @@ var fs={
 								}
 								let bcr=pp.getBoundingClientRect();
 								//let l=bcr.left+getScrollX(anc);
-								let t=bcr.top+getScrollY(anc);
+								let t=Math.round(bcr.top+getScrollY(anc));
 								let ts=t.toString();
 								let x=txt.length;
 								if(typeof(sb[ts])==='undefined'){
@@ -1437,7 +1437,7 @@ var fs={
 						sortByArrCols(sb2,[0],[-1]);
 						for(let k=0, len_k=sb2.length; k<len_k; k++){
 							let s2k=sb2[k][1]; //els
-							let sps=[`<section style="margin-bottom: 3ch; ">`];
+							let sps=[`<section>`];
 							for(let j=0, len_j=s2k.length; j<len_j; j++){
 								let elx=s2k[j]; //indexes
 								sps.push(txt[elx]);
@@ -1464,6 +1464,7 @@ var fs={
 						position: relative;
 						display: flex;
 						flex-wrap: wrap;
+						margin-bottom: 3ch;
 					}
 					</style>
 					</head>
