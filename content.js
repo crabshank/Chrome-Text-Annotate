@@ -7,6 +7,21 @@ var markStyl='mark.no_hl[indexnumber]{background-color:unset !important; color:u
 var tb_id=null;
 var tb_ttl=document.title;
 
+function sortByArrCols(arr, colsArr, dir){
+    arr.sort(sortFunction);
+		function sortFunction(a, b) {
+			for(let i = 0; i < arr.length; i++){
+					if(a[colsArr[i]]>b[colsArr[i]]){
+						return dir[i]*-1;
+					}else if(a[colsArr[i]]<b[colsArr[i]]){
+						return dir[i]*1;
+					}else if(i==arr.length-1){
+					return 0;
+				}
+			} 
+	}
+}
+
 function getParent(el,elementsOnly,doc_head_body){
 	if(!!el && typeof el!=='undefined'){
 		let out=null;
@@ -102,6 +117,23 @@ function getScrollY(anc){
 	ty=ty.filter( (p)=>{return p>=0} );
 										
 	return Math.max(...ty);
+}
+
+function getScrollX(anc){
+	let tx = [		window?.pageXOffset,
+											window?.scrollX,
+											document?.documentElement?.scrollLeft,
+											document?.body?.parentNode?.scrollLeft,
+											document?.body?.scrollLeft,
+											document?.head?.scrollLeft,
+											0
+										];
+		for(let k=0, len_k=anc.length; k<len_k; k++){
+			tx.push(anc[k]?.scrollLeft);
+		}
+	tx=tx.filter( (p)=>{return p>=0} );
+										
+	return Math.max(...tx);
 }
 
 function savePage(filename, htmlText) {
@@ -1360,8 +1392,59 @@ var fs={
                     let ttl=tb_ttl.endsWith('.html') ? tb_ttl : (tb_ttl.endsWith('.')?tb_ttl+'html':tb_ttl+'.html');
                     savePage(ttl);
 				},
-				markPageSaveText: (s)=>{
-					doMark(s,true);
+				saveText: (s)=>{
+					    let txt=[];
+					    let scts=[];
+						let sb={};
+						let selectEls=getMatchingNodesShadow_order(document,s,false,false);
+						let sel= s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? selectEls : [document.documentElement];
+							
+						for(let i=0, len_i=sel.length; i<len_i; i++){
+							let el=sel[i];
+							let n=getMatchingNodesShadow_order(el, '#text', true, false);
+							for(let k=0, len_k=n.length; k<len_k; k++){
+								let nk=n[k];
+								let pp=nk.parentElement;
+								let anc=getAncestors(pp,true,true,false,true);
+								let dtc=nk.textContent;
+								for(let i=0, len_i=anc.length; i<len_i; i++){
+									let sy=getScrollY(anc);
+									anc[i].scrollIntoView({behavior: "instant", block: 'center', inline: "start"});
+									let sy2=getScrollY(anc);
+									if(sy!==sy2){
+										out=anc[i];
+										break;
+									}
+								}
+								let bcr=pp.getBoundingClientRect();
+								//let l=bcr.left+getScrollX(anc);
+								let t=bcr.top+getScrollY(anc);
+								let ts=t.toString();
+								let x=txt.length;
+								if(typeof(sb[ts])==='undefined'){
+									sb[ts]={top:t,els:[x]}
+								}else{
+									sb[ts].els.push(x);
+								}
+								txt.push(`<span>${dtc}</span>`);
+							}
+						}
+						let sb2=[];
+						for(key in sb){
+							let sbk=sb[key];
+							sb2.push([sbk.top,sbk.els]);
+						}
+						sortByArrCols(sb2,[0],[-1]);
+						for(let k=0, len_k=sb2.length; k<len_k; k++){
+							let s2k=sb2[k][1]; //els
+							let sps=[`<section style="top: ${sb2[k][0]}px;">`];
+							for(let j=0, len_j=s2k.length; j<len_j; j++){
+								let elx=s2k[j]; //indexes
+								sps.push(txt[elx]);
+							}
+							scts.push(sps.join('')+'</section>')
+						}
+						
 					let ttl=tb_ttl;
 					if(ttl.endsWith('.html')){
 						ttl=ttl.split('.html')[0]+'.txt.html';
@@ -1372,20 +1455,19 @@ var fs={
 					}else{
 						ttl+='.txt.html';
 					}
-					let mks=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false).map((t)=>{
-						return t.outerHTML.replaceAll(/ textcol\s*\=\s*\"[^\"]+\"/g,'');
-					});
+					
 					let markTxt_html=`<html>
 					<head>
 					<meta charset="UTF-8">
-					<style>${markStyl}</style>
 					<style>
-					mark[indexnumber]{
-						content-visibility: auto;
+					section{
+						position: relative;
+						display: flex;
+						flex-wrap: wrap;
 					}
-						</style>
+					</style>
 					</head>
-					<body style="overflow-y: scroll";><section style="white-space: pre-wrap !important;position:absolute; left:0.5%;top:0ch;width: 98.5%;">${mks.join('')}</section></body></html>`
+					<body><main style="white-space: pre-wrap !important;position:absolute; left:0.5%;top:0ch;width: 98.5%;">${scts.join('')}</main></html>`
                     savePage(ttl,markTxt_html);
 				},
 				setupPatt: (s)=>{ //setup pattent-based annotation window

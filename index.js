@@ -2,20 +2,19 @@ send('getStatus');
 
 let mkp=document.getElementById('markPage');
 let mkps=document.getElementById('markPageSave');
-let mkpsTxt=document.getElementById('markPageSaveText');
+let svtx=document.getElementById('saveText');
 let txtar=document.getElementById('txta');
 let spt=document.getElementById('setupPatt');
 
 window.onclick=(e)=>{
 	t=e.target;
-	if(t===mkp || t===mkps || t===mkpsTxt){
+	if(t===mkp || t===mkps || t===svtx){
 		send([t.id,txtar.value]);
 		window.close();
 	}else if(t===spt){ //Add to options
 		send([t.id,null]);
 		window.close();
 	}
-	
 };
 
 function setHeight(el){
