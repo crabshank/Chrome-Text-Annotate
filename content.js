@@ -1379,13 +1379,13 @@ var fs={
 					<head>
 					<meta charset="UTF-8">
 					<style>${markStyl}</style>
-					<head>
-					<body>
-					<pre style="white-space: pre-wrap !important;">
-					${mks.join('')}
-					</pre>
-					</body>
-					</html>`
+					<style>
+					mark[indexnumber]{
+						content-visibility: auto;
+					}
+						</style>
+					</head>
+					<body style="overflow-y: scroll";><section style="white-space: pre-wrap !important;position:absolute; left:0.5%;top:0ch;width: 98.5%;">${mks.join('')}</section></body></html>`
                     savePage(ttl,markTxt_html);
 				},
 				setupPatt: (s)=>{ //setup pattent-based annotation window
