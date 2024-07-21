@@ -772,7 +772,9 @@ function doMark(s, markOnly, noMark){
 						altTx=(altTexts.length===1)?altTexts[0]:altTexts;
 				}
 				textAnnotate.searchSelect(mks,cols,chkd,altTx);
-			}else if(t.id==='nameSel'){
+			}else if(t.id==='genPatSearch'){
+                textAnnotate.populateFrame(undefined,undefined,true);
+        }else if(t.id==='nameSel'){
 				let cols=null;
 				let chkd=[...textAnnotate.ifrm_document.querySelectorAll('input.types[type="checkbox"]:checked')].map((c)=>{return c.parentElement.innerText;});
 				try{ 
@@ -1061,7 +1063,7 @@ function doMark(s, markOnly, noMark){
 
 			textAnnotate.ifrm_document.body.innerHTML=`
 		<section style="display: flex; flex-direction: row; place-items: flex-start;"> <div id="selText" style="border:buttonface; border-width: 0.28ch; border-style: groove; padding: 0.2ch;" title="${ isPatt===true ? 'Enter search pattern (regex, without bounding forward slashes/plaintext)' : ''}"${ isPatt===true ? ' contenteditable' : ' selmarks="'+mksj+'"'}>${sel}</div>${ isPatt===true ? '<section style="display: flex; flex-direction:column;"><section style="display: flex;flex-direction: row;"><input type="checkbox" title="Regex, by default" id="plainSearch" style="place-self: center"></input><span style="text-wrap: nowrap;align-self: center;" title="Regex, by default">Plain text</span></section><section style="display: flex;flex-direction: row;"><input type="checkbox" id="caseInsens" style="place-self: center"></input><span style="text-wrap: nowrap;align-self: center;">Case-insensitive</span></section></section>' : ''}<button id="hideFrame" style="float:right;width: 4.3ch;color: red;background: black;border: 1px buttonface outset;margin-left: 0.02ch;">❌</button></section>
-		<section>
+		<section style="width: max-content;">
 			<section id="nameForm">
 			<form>
 		  <div class="multiselect">
@@ -1100,7 +1102,7 @@ function doMark(s, markOnly, noMark){
 		  </div>
 		</form>
 		</section>
-		<button id="${ isPatt===true ? 'pattSearch' : 'nameSel'}">${ isPatt===true ? 'Search pattern!' : 'Name selection!'}</button>
+		${isPatt===true ? '' : '<section style="display: flex; flex-direction: row;">' }<button style="white-space: nowrap;" id="${ isPatt===true ? 'pattSearch' : 'nameSel'}">${ isPatt===true ? 'Search pattern!' : 'Name selection!'}</button>${isPatt===true ? '' : '	<button style="white-space: nowrap;=:right;right: 0;position: absolute;" id="genPatSearch">Search for text</button></section>' }
 		</section>`;
 		
 		let idc=textAnnotate.ifrm_document;
