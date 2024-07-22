@@ -1437,7 +1437,12 @@ var fs={
 						sortByArrCols(sb2,[0],[-1]);
 						for(let k=0, len_k=sb2.length; k<len_k; k++){
 							let s2k=sb2[k][1]; //els
-							let sps=[`<section>`];
+							let gap=' ';
+							if(k>0){
+								let mt=sb2[k][0]-sb2[k-1][0];
+								gap=` style="margin-top: calc(min(2.25ch,${mt}px));"`;
+							}
+							let sps=[`<section${gap}>`];
 							for(let j=0, len_j=s2k.length; j<len_j; j++){
 								let elx=s2k[j]; //indexes
 								sps.push(txt[elx]);
@@ -1464,7 +1469,6 @@ var fs={
 						position: relative;
 						display: flex;
 						flex-wrap: wrap;
-						margin-bottom: 3ch;
 					}
 					</style>
 					</head>
