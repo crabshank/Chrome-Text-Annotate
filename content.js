@@ -1076,7 +1076,8 @@ function doMark(s, markOnly, noMark){
 			
 			let colrs=[];
 			let cols='';
-			let presentCols=Array.from( new Set(textAnnotate.annotations.map((a)=>{return a.hexRGB;})));
+			let cls= typeof(chkTypes)!=='undefined' && typeof(chkTypes[1])!=='undefined' && chkTypes[1]!==null ? [...textAnnotate.annotations.map((a)=>{return a.hexRGB;}),...chkTypes[1]] : textAnnotate.annotations.map((a)=>{return a.hexRGB;});
+			let presentCols=Array.from( new Set(cls));
 			for (let i=0, len=presentCols.length; i<len;i++){
 				let s=`<label for="c${i}" class="col pre"> <input class="col" type="checkbox" func="checkCols" id="c${i}"><div class="col" style="background-color: ${presentCols[i]} !important;"></div></input>${presentCols[i].toLocaleUpperCase()}</label>`;
 				colrs.push(s);
