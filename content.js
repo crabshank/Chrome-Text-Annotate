@@ -1,3 +1,4 @@
+var chg = window.location.href;
 var addrs=[];
 var fcns=[];
 var urlMatch=[];
@@ -6,6 +7,22 @@ var isMarked=false;
 var markStyl='mark.no_hl[indexnumber]{background-color:unset !important; color:unset !important;}';
 var tb_id=null;
 var tb_ttl=document.title;
+var textAnnotate;
+var isHashReset=false;
+
+function hashReset(){
+    addrs=[];
+    fcns=[];
+    urlMatch=[];
+    firstDone=false;
+    isHashReset=true;
+    textAnnotate=new_textAnnotate();
+    let styls=[...document.head.getElementsByTagName('STYLE')].find(s=>{return s.innerHTML.includes(markStyl);});
+    if(typeof(styls)!=='undefined'){
+        elRemover(styls);
+    }
+    start_up();
+}
 
 function sortByArrCols(arr, colsArr, dir){
     arr.sort(sortFunction);
@@ -119,7 +136,7 @@ function getScrollY(anc){
 	return Math.max(...ty);
 }
 
-function getScrollX(anc){
+/*function getScrollX(anc){
 	let tx = [		window?.pageXOffset,
 											window?.scrollX,
 											document?.documentElement?.scrollLeft,
@@ -134,7 +151,7 @@ function getScrollX(anc){
 	tx=tx.filter( (p)=>{return p>=0} );
 										
 	return Math.max(...tx);
-}
+}*/
 
 function savePage(filename, htmlText) {
   let htmlContent = typeof(htmlText)==='string' ? htmlText : document.documentElement.outerHTML  ;
@@ -199,18 +216,14 @@ async function updateAnnotations(){
 	});
 }
 
-let textAnnotate={};
+function new_textAnnotate(){
+    let ta={}
+    ta.annotations=[]; //Store annotations
+ta.lastAnnotations=[]; //Store last annotations
+ta.options=[]; //Store names to choose from
+ta.markText='';
 
-function insertAfter(newNode, existingNode) {
-	existingNode.parentNode.insertBefore(newNode, existingNode.nextSibling);
-}
-
-textAnnotate.annotations=[]; //Store annotations
-textAnnotate.lastAnnotations=[]; //Store last annotations
-textAnnotate.options=[]; //Store names to choose from
-textAnnotate.markText='';
-
-textAnnotate.perChar=function(els){ //Create per-character mark tags
+ta.perChar=function(els){ //Create per-character mark tags
 	let allTextNodeParentEls=[];
 	let elsArr=Array.isArray(els) ? els : [els];
 	let cnt=0;
@@ -225,7 +238,7 @@ textAnnotate.perChar=function(els){ //Create per-character mark tags
 			let pp=nk.parentElement;
 			if(!allTextNodeParentEls.includes(pp)){
 				let chs=getMatchingNodesShadow_order(pp, false, true,false);
-				if(!chs.includes(textAnnotate.ifrm) && !chs.includes(textAnnotate.sct) && !chs.includes(textAnnotate.scr)){
+				if(!chs.includes(ta.ifrm) && !chs.includes(ta.sct) && !chs.includes(ta.scr)){
 					let wcs=window.getComputedStyle(pp);
 					let txc=wcs.color;
 					let txcAtt=' '; 
@@ -239,7 +252,7 @@ textAnnotate.perChar=function(els){ //Create per-character mark tags
 						diffCol=true;
 					}
 					nk.textContent=`<mark${txcAtt}indexnumber="${cnt}" class="no_hl">`+dtc[0]+'</mark>';
-					textAnnotate.markText+=dtc[0];
+					ta.markText+=dtc[0];
 					nk.indexNumber=cnt;
 					
 					if(!tmp_allTextNodeParentEls.includes(pp)){
@@ -250,7 +263,7 @@ textAnnotate.perChar=function(els){ //Create per-character mark tags
 					for(let i=1, len_i=dtc.length; i<len_i; i++){
 						txcAtt= diffCol===true ? ` textCol="${txc}" ` : ' ';
 						nt = document.createTextNode(`<mark${txcAtt}indexnumber="${cnt}" class="no_hl">`+dtc[i]+'</mark>');
-						textAnnotate.markText+=dtc[i];
+						ta.markText+=dtc[i];
 						insertAfter(nt, lastNode);
 						nt.indexNumber=cnt;
 						cnt++;
@@ -273,10 +286,10 @@ textAnnotate.perChar=function(els){ //Create per-character mark tags
 	console.log('Per-character mark tags created!');
 }
 
-textAnnotate.nameSelection=function(names, altText,hexRGB,ix){ //Create annotation for selected node range; 'names' and altText arguments are a string or array of strings
+ta.nameSelection=function(names, altText,hexRGB,ix){ //Create annotation for selected node range; 'names' and altText arguments are a string or array of strings
 	if(ix!==null){
 		ixt=parseInt(ix);
-		let ax=textAnnotate.annotations[ixt];
+		let ax=ta.annotations[ixt];
 		let stx2=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false).filter(m=>{let n=parseInt(m.getAttribute('indexnumber')); return ax.nodeIndexes.includes(n); });
 		let srgb=(typeof(hexRGB)==='string')?hexRGB:'#FFFF00';
 		for(let i=0, len_i=stx2.length; i<len_i; i++){
@@ -302,16 +315,16 @@ textAnnotate.nameSelection=function(names, altText,hexRGB,ix){ //Create annotati
 			}
 			ax.hexRGB=srgb;
             for(let k=0, len_k=ax.types.length; k<len_k; k++){
-			if(!textAnnotate.options.includes(ax.ypes[k])){
-				textAnnotate.options.push(ax.types[k]);
+			if(!ta.options.includes(ax.ypes[k])){
+				ta.options.push(ax.types[k]);
 			}
 		}
-			textAnnotate.annotations[ixt]=ax; // [ [ ALL INDEX NUMBERS HERE! ], ... ]
+			ta.annotations[ixt]=ax; // [ [ ALL INDEX NUMBERS HERE! ], ... ]
 			updateAnnotations();
 	}else{
 		let sel=window.getSelection();
         let selNodes=[];
-        let idc=textAnnotate.ifrm_document;
+        let idc=ta.ifrm_document;
         let selTxt=idc.getElementById('selText');
         let stx=JSON.parse(selTxt.getAttribute('selmarks'));
         let stx2=getMatchingNodesShadow_order(document,'mark.no_hl[indexnumber]',false,false);
@@ -357,11 +370,11 @@ textAnnotate.nameSelection=function(names, altText,hexRGB,ix){ //Create annotati
             an.textCol=firstTCol;
 			an.hexRGB=srgb;
             for(let k=0, len_k=an.types.length; k<len_k; k++){
-                if(!textAnnotate.options.includes(an.types[k])){
-                    textAnnotate.options.push(an.types[k]);
+                if(!ta.options.includes(an.types[k])){
+                    ta.options.push(an.types[k]);
                 }
             }
-			textAnnotate.annotations.push(an); // [ [ ALL INDEX NUMBERS HERE! ], ... ]
+			ta.annotations.push(an); // [ [ ALL INDEX NUMBERS HERE! ], ... ]
 			updateAnnotations();
 		}else{
 			console.error('No selected text!');
@@ -369,17 +382,17 @@ textAnnotate.nameSelection=function(names, altText,hexRGB,ix){ //Create annotati
 	}
 }
 
-textAnnotate.getAnnotationsByType=function(typs){ // 'typs' is a string or array of strings
+ta.getAnnotationsByType=function(typs){ // 'typs' is a string or array of strings
 	if(typeof(typs)==='string'){
-		let f=textAnnotate.annotations.filter((n)=>{return n.types.includes(typs);});
+		let f=ta.annotations.filter((n)=>{return n.types.includes(typs);});
 		console.log(f);
 	}else{
 		let out=[];
 		let outIxs=[];
 		for(let i=0, len_i=typs.length; i<len_i; i++){
-			let f=textAnnotate.annotations.filter((n)=>{return n.types.includes(typs[i]);});
+			let f=ta.annotations.filter((n)=>{return n.types.includes(typs[i]);});
 			for(let k=0, len_k=f.length; k<len_k; k++){
-				let n=textAnnotate.annotations.indexOf(f[k]);
+				let n=ta.annotations.indexOf(f[k]);
 				if(!outIxs.includes(n)){
 					outIxs.push(n);
 					out.push(f[k]);
@@ -391,23 +404,23 @@ textAnnotate.getAnnotationsByType=function(typs){ // 'typs' is a string or array
 	}
 }
 
-textAnnotate.logAnnotations=function(){ //Export annotations as text array
+ta.logAnnotations=function(){ //Export annotations as text array
     let an={};
-    an.annotations=textAnnotate.annotations;
-    an.markText=textAnnotate.markText;
+    an.annotations=ta.annotations;
+    an.markText=ta.markText;
 	let ann=JSON.stringify(an).replaceAll('[{','[\n\t{').replaceAll('},{','},\n\t{').replaceAll('}]','}\n]')+';';
 	copy(ann);
 	console.log(ann);
 }
 
-textAnnotate.logOptions=function(){ //Export annotations as text array
-	let opt=JSON.stringify(textAnnotate.options);
+ta.logOptions=function(){ //Export annotations as text array
+	let opt=JSON.stringify(ta.options);
 	copy(opt);
 	console.log(opt);
 }
 
-textAnnotate.logMatchingAnnotations=function(event){ //Pointer event; Log matching annotations
-	let a=textAnnotate.annotations;
+ta.logMatchingAnnotations=function(event){ //Pointer event; Log matching annotations
+	let a=ta.annotations;
 	let t=event.target;
 	let mtc=[];
 	let msl='mark[indexnumber]';
@@ -441,8 +454,8 @@ textAnnotate.logMatchingAnnotations=function(event){ //Pointer event; Log matchi
 		let mtcl=mtc.length;
 		if(mtcl>0){
 			let argm=[];
-			if( JSON.stringify(textAnnotate.lastAnnotations)!==JSON.stringify(mtc) ){
-				textAnnotate.lastAnnotations=mtc;
+			if( JSON.stringify(ta.lastAnnotations)!==JSON.stringify(mtc) ){
+				ta.lastAnnotations=mtc;
 				console.group('Matching annotations:');
 					for(let i=0; i<mtcl; i++){
 						let ix=mtc[i];
@@ -461,16 +474,17 @@ textAnnotate.logMatchingAnnotations=function(event){ //Pointer event; Log matchi
 				}
 			}
 			//setup iframe
-			textAnnotate.sct.style.setProperty( 'display', 'inline-block','important' );
-			textAnnotate.populateFrameHover(argm);
+			ta.sct.style.setProperty( 'display', 'inline-block','important' );
+			ta.populateFrameHover(argm);
 		}
 	
 }
 
-textAnnotate.hlMarks=function(el){ //Highlight marks after textAnnotate.annotations has already been assigned
+
+ta.hlMarks=function(el){ //Highlight marks after ta.annotations has already been assigned
 	let mks=getMatchingNodesShadow_order( ( (el===null || typeof(el)==='undefined' )? document : el ) ,`mark[indexnumber]`,false,false);
-	for(let i=0, len_i=textAnnotate.annotations.length; i<len_i; i++){
-		let ai=textAnnotate.annotations[i];
+	for(let i=0, len_i=ta.annotations.length; i<len_i; i++){
+		let ai=ta.annotations[i];
 		for(let k=0, len_k=ai.nodeIndexes.length; k<len_k; k++){
 			let xk=ai.nodeIndexes[k];
 			let ix=mks.findIndex( (m)=>{ return parseInt(m.getAttribute('indexnumber'))===xk; } );
@@ -485,36 +499,36 @@ textAnnotate.hlMarks=function(el){ //Highlight marks after textAnnotate.annotati
 	}
 }
 
-textAnnotate.importString=function(arrString,el){ //Import annotations as array string; el is the element within which to search for annotatable mark tags, if undefined or null, defaults to document
+ta.importString=function(arrString,el){ //Import annotations as array string; el is the element within which to search for annotatable mark tags, if undefined or null, defaults to document
 	let an=JSON.parse(arrString);
-    textAnnotate.annotations=an.annotations;
-    textAnnotate.markText=an.markText;
-	textAnnotate.hlMarks(el);
+    ta.annotations=an.annotations;
+    ta.markText=an.markText;
+	ta.hlMarks(el);
 	updateAnnotations();
 }
 
-textAnnotate.importOptionsString=function(arrString){ //Import options as array string
-	textAnnotate.options=JSON.parse(arrString);
+ta.importOptionsString=function(arrString){ //Import options as array string
+	ta.options=JSON.parse(arrString);
 }
 
-textAnnotate.import=function(arr,el){  //Import annotations as array; el is the element within which to search for annotatable mark tags, if undefined or null, defaults to document
-	textAnnotate.annotations=arr;
-	textAnnotate.hlMarks(el);
+ta.import=function(arr,el){  //Import annotations as array; el is the element within which to search for annotatable mark tags, if undefined or null, defaults to document
+	ta.annotations=arr;
+	ta.hlMarks(el);
 	updateAnnotations();
 }
 
-textAnnotate.importOptions=function(arr){  //Import options as array
-	textAnnotate.options=arr;
+ta.importOptions=function(arr){  //Import options as array
+	ta.options=arr;
 	updateAnnotations();
 }
 
-textAnnotate.remove=function(n){  //Remove annotations as array; n is number or array of numbers
+ta.remove=function(n){  //Remove annotations as array; n is number or array of numbers
 	let arr=(typeof(n)==='number')?[n]:n;
 	let ixs=[];
 	let out=[];
 	for(let k=0, len_k=arr.length; k<len_k; k++){
 		let nk=arr[k];
-		let ank=textAnnotate.annotations[nk];
+		let ank=ta.annotations[nk];
 		let mk=getMatchingNodesShadow_order(document,`mark[indexnumber]`,false,false);
 		let mks=[];
 		mks.length=mk.length;
@@ -531,9 +545,9 @@ textAnnotate.remove=function(n){  //Remove annotations as array; n is number or 
 		ixs.push(nk);
 	}
 	let optsUpd=[];
-	for(let k=0, len_k=textAnnotate.annotations.length; k<len_k; k++){
+	for(let k=0, len_k=ta.annotations.length; k<len_k; k++){
 		if(!ixs.includes(k)){
-			let tak=textAnnotate.annotations[k];
+			let tak=ta.annotations[k];
 			out.push(tak);
 			for(let j=0, len_j=tak.types.length; j<len_j; j++){
 				let tj=tak.types[j];
@@ -544,37 +558,37 @@ textAnnotate.remove=function(n){  //Remove annotations as array; n is number or 
 		}
 	}
 	let outp=[];
-	for(let k=0, len_k=textAnnotate.options.length; k<len_k; k++){
-		let pk=textAnnotate.options[k];
+	for(let k=0, len_k=ta.options.length; k<len_k; k++){
+		let pk=ta.options[k];
 		if(optsUpd.includes(pk)===true){
 			outp.push(pk);
 		}
 	}
-	textAnnotate.options=outp;
-	textAnnotate.annotations=out;
+	ta.options=outp;
+	ta.annotations=out;
 	updateAnnotations();
 }
 
-textAnnotate.addOptions=function(opt){	//'opt' is a string or array of strings
+ta.addOptions=function(opt){	//'opt' is a string or array of strings
 		let opts=(typeof(opts)==='string')?[opt]:opt;
 		for(let i=0, len_i=opts.length; i<len_i; i++){
-			if(!textAnnotate.options.includes(opts[i])){
-				textAnnotate.options.push(opts[i]);
+			if(!ta.options.includes(opts[i])){
+				ta.options.push(opts[i]);
 			}
 		}
 		updateAnnotations();
 }
 
-textAnnotate.removeOptions=function(opt){	//'opt' is a string or array of strings
+ta.removeOptions=function(opt){	//'opt' is a string or array of strings
 		let opts=(typeof(opts)==='string')?[opt]:opt;
 		for(let i=0, len_i=opts.length; i<len_i; i++){
-			textAnnotate.options=textAnnotate.options.filter((p)=>{return p!==opts[i];})
+			ta.options=ta.options.filter((p)=>{return p!==opts[i];})
 		}
 		updateAnnotations();
 }
 
-textAnnotate.findMarks=function(pat,plain,case_insensitive){	//search for marked text
-    let str=textAnnotate.markText;
+ta.findMarks=function(pat,plain,case_insensitive){	//search for marked text
+    let str=ta.markText;
     let out=[];
     if(plain===true){
 		let strRaw=str;
@@ -609,7 +623,7 @@ textAnnotate.findMarks=function(pat,plain,case_insensitive){	//search for marked
     return out;
 }
 
-textAnnotate.searchSelect=function(mks,hexRGB,types,altText){	//search for marked text and select; mks=textAnnotate.findMarks(pat,plain,case_insensitive);
+ta.searchSelect=function(mks,hexRGB,types,altText){	//search for marked text and select; mks=ta.findMarks(pat,plain,case_insensitive);
 
     for(let i=0, len_i=mks.length; i<len_i; i++){
         let mi=mks[i];
@@ -663,21 +677,21 @@ textAnnotate.searchSelect=function(mks,hexRGB,types,altText){	//search for marke
             an.textCol=firstTCol;
 			an.hexRGB=srgb;
             for(let k=0, len_k=an.types.length; k<len_k; k++){
-                if(!textAnnotate.options.includes(an.types[k])){
-                    textAnnotate.options.push(an.types[k]);
+                if(!ta.options.includes(an.types[k])){
+                    ta.options.push(an.types[k]);
                 }
             }
-			textAnnotate.annotations.push(an); // [ [ ALL INDEX NUMBERS HERE! ], ... ]
+			ta.annotations.push(an); // [ [ ALL INDEX NUMBERS HERE! ], ... ]
     }
 	updateAnnotations();
 }
 
-textAnnotate.jump=function(i){  //Jump to annotation by index
-		if(!(i>=0 && i<textAnnotate.annotations.length)){
-			console.error(`Argument must be between 0 and ${textAnnotate.annotations.length-1}!`);
+ta.jump=function(i){  //Jump to annotation by index
+		if(!(i>=0 && i<ta.annotations.length)){
+			console.error(`Argument must be between 0 and ${ta.annotations.length-1}!`);
 			return;
 		}
-		let ix=textAnnotate.annotations[i].nodeIndexes[0];
+		let ix=ta.annotations[i].nodeIndexes[0];
 		let el=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false).find((m)=>{let n=parseInt(m.getAttribute('indexnumber')); return n===ix; });
 		let anc=getAncestors(el,true,true,false,true);
 		 for(let i=0, len_i=anc.length; i<len_i; i++){
@@ -689,6 +703,256 @@ textAnnotate.jump=function(i){  //Jump to annotation by index
 			}
 		}
 }
+
+
+ta.populateFrameHover=(argm)=>{ //Setup iFrame
+
+			let mxs={types:0,alt:0};
+			let tr2='';
+			for(let i=0,len=argm.length; i<len;i++){
+				let ai=argm[i];
+				let mt=ai.types.length;
+				mxs.types=(mt>mxs.types)?mt:mxs.types;
+				let typa=typeof(ai.altText);
+				let ma=0;
+				let typAlt=false;
+				if(ai.altText!==null && typa!=='undefined'){
+					if(typa==='string'){
+						ma=1;
+						typAlt=true;
+					}else{
+						ma=ai.altText.length;
+					}		
+				}
+				mxs.alt=(ma>mxs.alt)?ma:mxs.alt;
+				tr2+=`<tr><td><button id="editBtn" ix="${ai.index}" func="editAnn" style="width: -webkit-fill-available;margin-bottom: 0.3ch;">Edit</button><br><button style="width: -webkit-fill-available" id="delBtn" ix="${ai.index}" func="remAnn">Delete</button></td><td>[${ai.index}]</td>`;
+				tr2+=`<td style="text-align:left !important;font-family: monospace;font-size: 2.3ch;width: 12ch; background-color: ${ai.hexRGB}; color: ${ai.textCol}">${ai.text}</td>`;
+				for(let k=0; k<mt; k++){
+					tr2+=`<td>${ai.types[k]}</td>`;
+				}
+				for(let k=0; k<ma; k++){
+					tr2+=`<td>${	(	(typAlt)?ai.altText:ai.altText[k]	)	}</td>`;
+				}
+				tr2+='</tr>';
+			}
+			
+			let tr=`<tr><th></th><th>index</th><th>text</th>`;
+			let thst='';
+			let thsa='';
+			if(mxs.types>0){
+				thst=`<th colspan="${mxs.types}">types</th>`;
+			}
+			if(mxs.alt>0){
+				thsa=`<th colspan="${mxs.alt}">altText</th>`;
+			}
+			tr+=thst+thsa+'</tr>'; //first row 
+			
+			
+			ta.ifrm_document.body.innerHTML=`<table>${tr}${tr2}</table>`;
+			let delBtn=ta.ifrm_document.body.querySelector('#delBtn');
+			//delBtn.ta=ta;
+			let editBtn=ta.ifrm_document.body.querySelector('#editBtn');
+			//editBtn.ta=ta;
+			let sh=ta.ifrm_document.body.scrollHeight;
+			ta.ifrm.style.setProperty( 'width', `${ta.ifrm_document.body.scrollWidth}px`, 'important' );
+			ta.ifrm.style.setProperty( 'height', `${sh}px`, 'important' );
+			ta.sct.style.setProperty( 'height', `${sh}px`, 'important' );
+			
+		};
+
+		ta.populateFrame=(ix,chkTypes,isPatt,pattData)=>{ //Setup iFrame
+			let tyx,isx,isax,gsel,mks,mksj;
+			let typPD_undef=typeof(pattData)==='undefined'?true:false;
+			let sel= isPatt===true && typPD_undef===false ? pattData[0] : '' ;
+			if(isPatt!==true){ //pattern-based
+				tyx=typeof(ix);
+				isx= tyx!=='undefined' && ix!==null ? true : false;
+				isax= isx && tyx!=='string' && ix.length>0 && typeof(ix[1])==='string' ? true :false;
+				gsel=window.getSelection();
+				//sel='';
+				mks=[];
+				mksj='';
+				if(isax){
+						sel=ix[0];
+						mksj=ix[1];
+						mks=JSON.parse(mksj[1]);
+				}else if(!isx){
+						sel=gsel.toString();
+						let s=gsel.getRangeAt(0).cloneContents();
+						let stx=getMatchingNodesShadow_order(s,'mark.no_hl[indexnumber]',false,false);
+						for(let i=0, len_i=stx.length; i<len_i; i++){
+							let mn=stx[i].getAttribute('indexnumber');
+							if(mn!==null){
+								mks.push(parseInt(mn));
+							}
+						}
+						mksj=JSON.stringify(mks);
+				}
+				
+			}
+
+			
+			let colrs=[];
+			let cols='';
+			let presentCols=Array.from( new Set(ta.annotations.map((a)=>{return a.hexRGB;})));
+			for (let i=0, len=presentCols.length; i<len;i++){
+				let s=`<label for="c${i}" class="col pre"> <input class="col" type="checkbox" func="checkCols" id="c${i}"><div class="col" style="background-color: ${presentCols[i]} !important;"></div></input>${presentCols[i].toLocaleUpperCase()}</label>`;
+				colrs.push(s);
+			}
+			cols=colrs.join('\n');
+			
+			let optns=[];
+			let opts='';
+			for (let i=0, len=ta.options.length; i<len;i++){
+				let opi='opt'+i;
+				let s=`<label for="${opi}">
+				<input type="checkbox" id="${opi}" class="types"></input>${ta.options[i]}</label>`;
+				optns.push(s);
+			}
+			opts=optns.join('\n');
+
+			ta.ifrm_document.body.innerHTML=`
+		<section style="display: flex; flex-direction: row; place-items: flex-start;"> <div id="selText" style="border:buttonface; border-width: 0.28ch; border-style: groove; padding: 0.2ch;" title="${ isPatt===true ? 'Enter search pattern (regex, without bounding forward slashes/plaintext)' : ''}"${ isPatt===true ? ' contenteditable' : ' selmarks="'+mksj+'"'}>${sel}</div>${ isPatt===true ? '<section style="display: flex; flex-direction:column;"><section style="display: flex;flex-direction: row;"><input type="checkbox" title="Regex, by default" id="plainSearch" style="place-self: center"></input><span style="text-wrap: nowrap;align-self: center;" title="Regex, by default">Plain text</span></section><section style="display: flex;flex-direction: row;"><input type="checkbox" id="caseInsens" style="place-self: center"></input><span style="text-wrap: nowrap;align-self: center;">Case-insensitive</span></section></section>' : ''}<button id="hideFrame" style="float:right;width: 4.3ch;color: red;background: black;border: 1px buttonface outset;margin-left: 0.02ch;">❌</button></section>
+		<section style="width: max-content;">
+			<section id="nameForm">
+			<form>
+		  <div class="multiselect">
+			<div class="selectBox" func="showCheckboxes" args="false">
+			  <select>
+				<option>Select types</option>
+			  </select>
+			  <div class="overSelect"></div>
+			</div>
+			<div id="checkboxes" class="expanded">
+			  ${opts}
+			</div>
+		  </div>
+		  <section id="altTexts" style="margin-top: 0.3ch;">
+			<span>Alt text:</span><br>
+				<section style="margin-bottom: 0.7ch;" class="altTextInstance">	<textarea func="setHeights" class="altText"></textarea>	<button class="newAlt" style="filter: hue-rotate(212deg) saturate(10); width: 4.3ch;">➕</button>	<button id="${ isPatt===true ? 'addOpt_patt' : 'addOpt'}">Add as type</button></section>
+		  </section>
+		</form>
+
+
+		</section>
+
+		<section>
+			<form>
+		  <div class="multiselect">
+			<div class="selectBox" func="showCheckboxes" args="true">
+			  <select>
+				<option>Select RGB</option>
+			  </select>
+			  <div class="overSelect"></div>
+			</div>
+			<div id="checkboxesCol" class="expanded">
+			  <label for="c1" class="col"> <input class="col" type="checkbox" func="checkCols" id="c1"><input class="col" type="color" style="width: 4.808ch !important; margin-right: 0.48ch !important; height: auto !important; background-color: #ffff00 !important; border: #ffff00 !important;" func="customCol" id="vis" value="#ffff00"></input>Custom</label>
+			  ${cols}
+			</div>
+		  </div>
+		</form>
+		</section>
+		${isPatt===true ? '' : '<section style="display: flex; flex-direction: row;">' }<button style="white-space: nowrap;" id="${ isPatt===true ? 'pattSearch' : 'nameSel'}">${ isPatt===true ? 'Search pattern!' : 'Name selection!'}</button>${isPatt===true ? '' : '	<button style="white-space: nowrap;=:right;right: 0;position: absolute;" id="genPatSearch">Search for text</button></section>' }
+		</section>`;
+		
+		let idc=ta.ifrm_document;
+
+		if(isPatt!==true && isx && !isax){
+			let ax=ta.annotations[ix];
+			let nameSel=idc.getElementById('nameSel');
+			nameSel.setAttribute('ix',ix);
+			let selText=idc.getElementById('selText');
+			selText.innerText=ax.text;
+			let altTxts=[...idc.getElementsByClassName('altText')];
+			if (typeof(ax.altText)==='string'){
+				altTxts[0].value=ax.altText;
+			}else if(ax.altText!==null){
+				for(let i=0, len=ax.altText.length; i<len; i++){
+					altTxts=[...idc.getElementsByClassName('altText')];
+					let ati=altTxts[i];
+					ati.value=ax.altText[i];
+					if(i<len-1){
+						ati.nextElementSibling.click();
+					}
+				}
+			}
+			let chks=[...idc.querySelectorAll('#checkboxes input[type="checkbox"]')];
+			for(let i=0, len_i=ax.types.length; i<len_i; i++){
+				let ti=ax.types[i];
+				for(let k=0, len_k=chks.length; k<len_k; k++){
+					let ck=chks[k];
+					let p=ck.parentElement;
+					if(p.innerText===ti){
+						ck.checked=true;
+					}
+				}
+			}
+			
+			chks=[...idc.querySelectorAll('#checkboxesCol input[type="checkbox"]')]; //RGB
+			for(let k=0, len_k=chks.length; k<len_k; k++){
+				let ck=chks[k];
+				if(ck.parentElement.innerText===ax.hexRGB){
+					ck.checked=true;
+					break;
+				}
+			}
+		}
+
+		if(typeof(chkTypes)!=='undefined'){
+				let chks=[...idc.querySelectorAll('#checkboxes input[type="checkbox"]')];
+			for(let i=0, len_i=chkTypes[0].length; i<len_i; i++){
+				let ti=chkTypes[0][i];
+				for(let k=0, len_k=chks.length; k<len_k; k++){
+					let ck=chks[k];
+					let p=ck.parentElement;
+					if(p.innerText===ti){
+						ck.checked=true;
+					}
+				}
+			}
+			
+			chks=[...idc.querySelectorAll('#checkboxesCol input[type="checkbox"]')]; //RGB
+			let fnd=false;
+			for(let i=0, len_i=chkTypes[1].length; i<len_i; i++){
+				let ti=chkTypes[1][i];
+				for(let k=0, len_k=chks.length; k<len_k; k++){
+					let ck=chks[k];
+					let p=ck.parentElement;
+					if(p.innerText===ti){
+						ck.checked=true;
+						fnd=true;
+						break;
+					}
+				}
+			}
+			
+			if(fnd===false){
+				let cl=chks[0].nextElementSibling;
+				cl.value=typeof (chkTypes[1][0])!=='undefined'?chkTypes[1][0]:'#ffff00';
+				cl.dispatchEvent(new Event('input'));
+				chks[0].checked=true;
+			}
+		}
+		
+			if(isPatt===true){
+				ta.sct.style.setProperty( 'display', 'inline-block','important' );
+				if(typPD_undef===false){					
+					idc.getElementById('plainSearch').checked=pattData[1];
+					idc.getElementById('caseInsens').checked=pattData[2];
+				}
+			}
+
+		}
+
+return ta;
+}
+
+textAnnotate=new_textAnnotate();
+
+function insertAfter(newNode, existingNode) {
+	existingNode.parentNode.insertBefore(newNode, existingNode.nextSibling);
+}
+
 
 function doMark(s, markOnly, noMark){
 	let selectEls=getMatchingNodesShadow_order(document,s,false,false);
@@ -875,7 +1139,8 @@ function doMark(s, markOnly, noMark){
 		textAnnotate.ifrm_document.body.style.setProperty( 'overflow', 'hidden', 'important' );
 		textAnnotate.ifrm_document.body.style.setProperty( 'height','max-content', 'important' );
 
-		document.addEventListener('pointerup',(e)=>{
+if(!isHashReset){
+		document.addEventListener('pointerup',(e)=>{ try{
 			if(window.getSelection().toString()!=='' && textAnnotate.isSelecting===true){	
 				textAnnotate.isSelecting=false;
 				textAnnotate.sct.style.setProperty( 'display', 'inline-block','important' );
@@ -883,7 +1148,8 @@ function doMark(s, markOnly, noMark){
 			}else{
 				textAnnotate.sct.style.setProperty( 'display', 'none','important' );
 			}
-		});
+		}catch(e){;}});
+}
 	//}
 
 		textAnnotate.ifrm_document.head.insertAdjacentHTML('afterbegin',`<style>
@@ -982,250 +1248,13 @@ function doMark(s, markOnly, noMark){
 
 		//post-selection
 		textAnnotate.isSelecting=false;
-
-		document.addEventListener('selectstart',(e)=>{
+    if(!isHashReset){
+		document.addEventListener('selectstart',(e)=>{ try{
 			textAnnotate.isSelecting=true;
-		});
-
-		textAnnotate.populateFrameHover=(argm)=>{ //Setup iFrame
-
-			let mxs={types:0,alt:0};
-			let tr2='';
-			for(let i=0,len=argm.length; i<len;i++){
-				let ai=argm[i];
-				let mt=ai.types.length;
-				mxs.types=(mt>mxs.types)?mt:mxs.types;
-				let typa=typeof(ai.altText);
-				let ma=0;
-				let typAlt=false;
-				if(ai.altText!==null && typa!=='undefined'){
-					if(typa==='string'){
-						ma=1;
-						typAlt=true;
-					}else{
-						ma=ai.altText.length;
-					}		
-				}
-				mxs.alt=(ma>mxs.alt)?ma:mxs.alt;
-				tr2+=`<tr><td><button id="editBtn" ix="${ai.index}" func="editAnn" style="width: -webkit-fill-available;margin-bottom: 0.3ch;">Edit</button><br><button style="width: -webkit-fill-available" id="delBtn" ix="${ai.index}" func="remAnn">Delete</button></td><td>[${ai.index}]</td>`;
-				tr2+=`<td style="text-align:left !important;font-family: monospace;font-size: 2.3ch;width: 12ch; background-color: ${ai.hexRGB}; color: ${ai.textCol}">${ai.text}</td>`;
-				for(let k=0; k<mt; k++){
-					tr2+=`<td>${ai.types[k]}</td>`;
-				}
-				for(let k=0; k<ma; k++){
-					tr2+=`<td>${	(	(typAlt)?ai.altText:ai.altText[k]	)	}</td>`;
-				}
-				tr2+='</tr>';
-			}
-			
-			let tr=`<tr><th></th><th>index</th><th>text</th>`;
-			let thst='';
-			let thsa='';
-			if(mxs.types>0){
-				thst=`<th colspan="${mxs.types}">types</th>`;
-			}
-			if(mxs.alt>0){
-				thsa=`<th colspan="${mxs.alt}">altText</th>`;
-			}
-			tr+=thst+thsa+'</tr>'; //first row 
-			
-			
-			textAnnotate.ifrm_document.body.innerHTML=`<table>${tr}${tr2}</table>`;
-			let delBtn=textAnnotate.ifrm_document.body.querySelector('#delBtn');
-			//delBtn.textAnnotate=textAnnotate;
-			let editBtn=textAnnotate.ifrm_document.body.querySelector('#editBtn');
-			//editBtn.textAnnotate=textAnnotate;
-			let sh=textAnnotate.ifrm_document.body.scrollHeight;
-			textAnnotate.ifrm.style.setProperty( 'width', `${textAnnotate.ifrm_document.body.scrollWidth}px`, 'important' );
-			textAnnotate.ifrm.style.setProperty( 'height', `${sh}px`, 'important' );
-			textAnnotate.sct.style.setProperty( 'height', `${sh}px`, 'important' );
-			
-		};
-
-		textAnnotate.populateFrame=(ix,chkTypes,isPatt,pattData)=>{ //Setup iFrame
-			let tyx,isx,isax,gsel,mks,mksj;
-			let typPD_undef=typeof(pattData)==='undefined'?true:false;
-			let sel= isPatt===true && typPD_undef===false ? pattData[0] : '' ;
-			if(isPatt!==true){ //pattern-based
-				tyx=typeof(ix);
-				isx= tyx!=='undefined' && ix!==null ? true : false;
-				isax= isx && tyx!=='string' && ix.length>0 && typeof(ix[1])==='string' ? true :false;
-				gsel=window.getSelection();
-				//sel='';
-				mks=[];
-				mksj='';
-				if(isax){
-						sel=ix[0];
-						mksj=ix[1];
-						mks=JSON.parse(mksj[1]);
-				}else if(!isx){
-						sel=gsel.toString();
-						let s=gsel.getRangeAt(0).cloneContents();
-						let stx=getMatchingNodesShadow_order(s,'mark.no_hl[indexnumber]',false,false);
-						for(let i=0, len_i=stx.length; i<len_i; i++){
-							let mn=stx[i].getAttribute('indexnumber');
-							if(mn!==null){
-								mks.push(parseInt(mn));
-							}
-						}
-						mksj=JSON.stringify(mks);
-				}
-				
-			}
-
-			
-			let colrs=[];
-			let cols='';
-			let cls= typeof(chkTypes)!=='undefined' && typeof(chkTypes[1])!=='undefined' && chkTypes[1]!==null ? [...textAnnotate.annotations.map((a)=>{return a.hexRGB;}),...chkTypes[1]] : textAnnotate.annotations.map((a)=>{return a.hexRGB;});
-			let presentCols=Array.from( new Set(cls));
-			for (let i=0, len=presentCols.length; i<len;i++){
-				let s=`<label for="c${i}" class="col pre"> <input class="col" type="checkbox" func="checkCols" id="c${i}"><div class="col" style="background-color: ${presentCols[i]} !important;"></div></input>${presentCols[i].toLocaleUpperCase()}</label>`;
-				colrs.push(s);
-			}
-			cols=colrs.join('\n');
-			
-			let optns=[];
-			let opts='';
-			for (let i=0, len=textAnnotate.options.length; i<len;i++){
-				let opi='opt'+i;
-				let s=`<label for="${opi}">
-				<input type="checkbox" id="${opi}" class="types"></input>${textAnnotate.options[i]}</label>`;
-				optns.push(s);
-			}
-			opts=optns.join('\n');
-
-			textAnnotate.ifrm_document.body.innerHTML=`
-		<section style="display: flex; flex-direction: row; place-items: flex-start;"> <div id="selText" style="border:buttonface; border-width: 0.28ch; border-style: groove; padding: 0.2ch;" title="${ isPatt===true ? 'Enter search pattern (regex, without bounding forward slashes/plaintext)' : ''}"${ isPatt===true ? ' contenteditable' : ' selmarks="'+mksj+'"'}>${sel}</div>${ isPatt===true ? '<section style="display: flex; flex-direction:column;"><section style="display: flex;flex-direction: row;"><input type="checkbox" title="Regex, by default" id="plainSearch" style="place-self: center"></input><span style="text-wrap: nowrap;align-self: center;" title="Regex, by default">Plain text</span></section><section style="display: flex;flex-direction: row;"><input type="checkbox" id="caseInsens" style="place-self: center"></input><span style="text-wrap: nowrap;align-self: center;">Case-insensitive</span></section></section>' : ''}<button id="hideFrame" style="float:right;width: 4.3ch;color: red;background: black;border: 1px buttonface outset;margin-left: 0.02ch;">❌</button></section>
-		<section style="width: max-content;">
-			<section id="nameForm">
-			<form>
-		  <div class="multiselect">
-			<div class="selectBox" func="showCheckboxes" args="false">
-			  <select>
-				<option>Select types</option>
-			  </select>
-			  <div class="overSelect"></div>
-			</div>
-			<div id="checkboxes" class="expanded">
-			  ${opts}
-			</div>
-		  </div>
-		  <section id="altTexts" style="margin-top: 0.3ch;">
-			<span>Alt text:</span><br>
-				<section style="margin-bottom: 0.7ch;" class="altTextInstance">	<textarea func="setHeights" class="altText"></textarea>	<button class="newAlt" style="filter: hue-rotate(212deg) saturate(10); width: 4.3ch;">➕</button>	<button id="${ isPatt===true ? 'addOpt_patt' : 'addOpt'}">Add as type</button></section>
-		  </section>
-		</form>
-
-
-		</section>
-
-		<section>
-			<form>
-		  <div class="multiselect">
-			<div class="selectBox" func="showCheckboxes" args="true">
-			  <select>
-				<option>Select RGB</option>
-			  </select>
-			  <div class="overSelect"></div>
-			</div>
-			<div id="checkboxesCol" class="expanded">
-			  <label for="c1" class="col"> <input class="col" type="checkbox" func="checkCols" id="c1"><input class="col" type="color" style="width: 4.808ch !important; margin-right: 0.48ch !important; height: auto !important; background-color: #ffff00 !important; border: #ffff00 !important;" func="customCol" id="vis" value="#ffff00"></input>Custom</label>
-			  ${cols}
-			</div>
-		  </div>
-		</form>
-		</section>
-		${isPatt===true ? '' : '<section style="display: flex; flex-direction: row;">' }<button style="white-space: nowrap;" id="${ isPatt===true ? 'pattSearch' : 'nameSel'}">${ isPatt===true ? 'Search pattern!' : 'Name selection!'}</button>${isPatt===true ? '' : '	<button style="white-space: nowrap;=:right;right: 0;position: absolute;" id="genPatSearch">Search for text</button></section>' }
-		</section>`;
+		}catch(e){;}});
+    }
 		
-		let idc=textAnnotate.ifrm_document;
 
-		if(isPatt!==true && isx && !isax){
-			let ax=textAnnotate.annotations[ix];
-			let nameSel=idc.getElementById('nameSel');
-			nameSel.setAttribute('ix',ix);
-			let selText=idc.getElementById('selText');
-			selText.innerText=ax.text;
-			let altTxts=[...idc.getElementsByClassName('altText')];
-			if (typeof(ax.altText)==='string'){
-				altTxts[0].value=ax.altText;
-			}else if(ax.altText!==null){
-				for(let i=0, len=ax.altText.length; i<len; i++){
-					altTxts=[...idc.getElementsByClassName('altText')];
-					let ati=altTxts[i];
-					ati.value=ax.altText[i];
-					if(i<len-1){
-						ati.nextElementSibling.click();
-					}
-				}
-			}
-			let chks=[...idc.querySelectorAll('#checkboxes input[type="checkbox"]')];
-			for(let i=0, len_i=ax.types.length; i<len_i; i++){
-				let ti=ax.types[i];
-				for(let k=0, len_k=chks.length; k<len_k; k++){
-					let ck=chks[k];
-					let p=ck.parentElement;
-					if(p.innerText===ti){
-						ck.checked=true;
-					}
-				}
-			}
-			
-			chks=[...idc.querySelectorAll('#checkboxesCol input[type="checkbox"]')]; //RGB
-			for(let k=0, len_k=chks.length; k<len_k; k++){
-				let ck=chks[k];
-				if(ck.parentElement.innerText===ax.hexRGB){
-					ck.checked=true;
-					break;
-				}
-			}
-		}
-
-		if(typeof(chkTypes)!=='undefined'){
-				let chks=[...idc.querySelectorAll('#checkboxes input[type="checkbox"]')];
-			for(let i=0, len_i=chkTypes[0].length; i<len_i; i++){
-				let ti=chkTypes[0][i];
-				for(let k=0, len_k=chks.length; k<len_k; k++){
-					let ck=chks[k];
-					let p=ck.parentElement;
-					if(p.innerText===ti){
-						ck.checked=true;
-					}
-				}
-			}
-			
-			chks=[...idc.querySelectorAll('#checkboxesCol input[type="checkbox"]')]; //RGB
-			let fnd=false;
-			for(let i=0, len_i=chkTypes[1].length; i<len_i; i++){
-				let ti=chkTypes[1][i];
-				for(let k=0, len_k=chks.length; k<len_k; k++){
-					let ck=chks[k];
-					let p=ck.parentElement;
-					if(p.innerText===ti){
-						ck.checked=true;
-						fnd=true;
-						break;
-					}
-				}
-			}
-			
-			if(fnd===false){
-				let cl=chks[0].nextElementSibling;
-				cl.value=typeof (chkTypes[1][0])!=='undefined'?chkTypes[1][0]:'#ffff00';
-				cl.dispatchEvent(new Event('input'));
-				chks[0].checked=true;
-			}
-		}
-		
-			if(isPatt===true){
-				textAnnotate.sct.style.setProperty( 'display', 'inline-block','important' );
-				if(typPD_undef===false){					
-					idc.getElementById('plainSearch').checked=pattData[1];
-					idc.getElementById('caseInsens').checked=pattData[2];
-				}
-			}
-
-		};
 	
 }
 	
@@ -1239,13 +1268,14 @@ function doMark(s, markOnly, noMark){
 			updateAnnotations();
 		}
 	}
-
-		document.addEventListener('pointermove',(e)=>{
+    if(!isHashReset){
+		document.addEventListener('pointermove',(e)=>{ try{
 			textAnnotate.logMatchingAnnotations(e);
-		});
-		document.addEventListener('touchend',(e)=>{ //For mobile
+		}catch(e){;}});
+		document.addEventListener('touchend',(e)=>{ try{ //For mobile
 			textAnnotate.logMatchingAnnotations(e);
-		});
+		}catch(e){;}});
+    }
 
 }
 
@@ -1489,7 +1519,7 @@ function start_up(){
 	try{
 		(async ()=>{
 			await start_up_storage();
-			let styls=[...document.head.getElementsByTagName('STYLE')].find(s=>{return s.innerHTML.includes(markStyl);})
+			let styls=[...document.head.getElementsByTagName('STYLE')].find(s=>{return s.innerHTML.includes(markStyl);});
 			isMarked= typeof(styls)==='undefined' ? false : true;
 			if(urlMatch[0] || isMarked){
 				let u2=urlMatch[2];
@@ -1548,3 +1578,47 @@ function gotMessage(message, sender, sendResponse) {
 }
 
 chrome.runtime.onMessage.addListener(gotMessage);
+
+function timer_func(){
+            if (window.location.href != chg) {
+                chg = window.location.href;
+                hashReset();
+			}
+}
+
+
+if(typeof observer ==="undefined" && typeof timer ==="undefined"){
+	var timer;
+	var timer_tm=null;
+const observer = new MutationObserver((mutations) =>
+{
+	if(timer){
+		clearTimeout(timer);
+		if(performance.now()-timer_tm>=3000){
+			timer_func();
+			timer_tm=performance.now();
+		}
+	}
+	
+	timer = setTimeout(() =>
+	{
+		timer_func();
+		timer_tm=performance.now();
+	}, 1000);
+	
+	if(timer_tm ===null){
+		timer_tm=performance.now();
+	}
+});
+
+
+observer.observe(document, {
+    subtree: true,
+	childList: true,
+	attributes: true,
+	attributeOldValue: true,
+	characterData: true,
+	characterDataOldValue: true
+});
+		
+}
