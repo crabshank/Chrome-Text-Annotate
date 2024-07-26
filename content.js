@@ -8,7 +8,6 @@ var markStyl='mark.no_hl[indexnumber]{background-color:unset !important; color:u
 var tb_id=null;
 var tb_ttl=document.title;
 var textAnnotate;
-var isHashReset=false;
 var docEvts={};
 
 function hashReset(){
@@ -16,7 +15,6 @@ function hashReset(){
     fcns=[];
     urlMatch=[];
     firstDone=false;
-    isHashReset=true;
     textAnnotate=new_textAnnotate();
     let styls=[...document.head.getElementsByTagName('STYLE')].find(s=>{return s.innerHTML.includes(markStyl);});
     if(typeof(styls)!=='undefined'){
@@ -1140,7 +1138,7 @@ function doMark(s, markOnly, noMark){
 		textAnnotate.ifrm_document.body.style.setProperty( 'overflow', 'hidden', 'important' );
 		textAnnotate.ifrm_document.body.style.setProperty( 'height','max-content', 'important' );
 
-if(!isHashReset && docEvts['pointerup']!==true){
+if(docEvts['pointerup']!==true){
 		document.addEventListener('pointerup',(e)=>{ try{
 			if(window.getSelection().toString()!=='' && textAnnotate.isSelecting===true){	
 				textAnnotate.isSelecting=false;
@@ -1250,7 +1248,7 @@ if(!isHashReset && docEvts['pointerup']!==true){
 
 		//post-selection
 		textAnnotate.isSelecting=false;
-    if(!isHashReset && docEvts['selectstart']!==true){
+    if(docEvts['selectstart']!==true){
 		document.addEventListener('selectstart',(e)=>{ try{
 			textAnnotate.isSelecting=true;
 		}catch(e){;}});
@@ -1272,7 +1270,7 @@ if(!isHashReset && docEvts['pointerup']!==true){
 			updateAnnotations();
 		}
 	}
-    if(!isHashReset && docEvts['pointermove']!==true && docEvts['touchend']!==true){
+    if(docEvts['pointermove']!==true && docEvts['touchend']!==true){
 		document.addEventListener('pointermove',(e)=>{ try{
 			textAnnotate.logMatchingAnnotations(e);
 		}catch(e){;}});
