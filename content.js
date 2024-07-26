@@ -9,6 +9,7 @@ var tb_id=null;
 var tb_ttl=document.title;
 var textAnnotate;
 var isHashReset=false;
+var docEvts={};
 
 function hashReset(){
     addrs=[];
@@ -1139,7 +1140,7 @@ function doMark(s, markOnly, noMark){
 		textAnnotate.ifrm_document.body.style.setProperty( 'overflow', 'hidden', 'important' );
 		textAnnotate.ifrm_document.body.style.setProperty( 'height','max-content', 'important' );
 
-if(!isHashReset){
+if(!isHashReset && docEvts['pointerup']!==true){
 		document.addEventListener('pointerup',(e)=>{ try{
 			if(window.getSelection().toString()!=='' && textAnnotate.isSelecting===true){	
 				textAnnotate.isSelecting=false;
@@ -1149,6 +1150,7 @@ if(!isHashReset){
 				textAnnotate.sct.style.setProperty( 'display', 'none','important' );
 			}
 		}catch(e){;}});
+        docEvts['pointerup']=true;
 }
 	//}
 
@@ -1248,10 +1250,12 @@ if(!isHashReset){
 
 		//post-selection
 		textAnnotate.isSelecting=false;
-    if(!isHashReset){
+    if(!isHashReset && docEvts['selectstart']!==true){
 		document.addEventListener('selectstart',(e)=>{ try{
 			textAnnotate.isSelecting=true;
 		}catch(e){;}});
+        
+        docEvts['selectstart']=true;
     }
 		
 
@@ -1268,7 +1272,7 @@ if(!isHashReset){
 			updateAnnotations();
 		}
 	}
-    if(!isHashReset){
+    if(!isHashReset && docEvts['pointermove']!==true && docEvts['touchend']!==true){
 		document.addEventListener('pointermove',(e)=>{ try{
 			textAnnotate.logMatchingAnnotations(e);
 		}catch(e){;}});
@@ -1276,7 +1280,8 @@ if(!isHashReset){
 			textAnnotate.logMatchingAnnotations(e);
 		}catch(e){;}});
     }
-
+docEvts['pointermove']=true;
+docEvts['touchend']=true;
 }
 
 function findURLmatch() {
