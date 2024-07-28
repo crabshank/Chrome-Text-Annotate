@@ -24,9 +24,5 @@
   },
   	"icons": {
         "128": "textAnnotate.png"
-    },
-	"web_accessible_resources": [{ 
-  "resources": ["lz-string.js"],
-  "matches": ["<all_urls>"]
-}]
+    }
 }
