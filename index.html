@@ -7,13 +7,16 @@
   <body>
 	<style>
 	button{
-	background-color: buttonface;
-	min-width: -webkit-fill-available;
+		background-color: buttonface;
 	}
-	#txta{
-	min-width: -webkit-fill-available;
+	#txta, select,button{
+		min-width: -webkit-fill-available;
+	}
+	option{
+		color:black;
 	}
 	</style>
+	  <select id="frms"  style="margin-bottom:0.87em;"></select>
 	  <button id="markPage">Mark page</button>
 	  <button id="markPageSave" title="You will only be able to annotate the saved page">Mark page + save</button>
 	  <button id="saveText" title="Save the selectable text of the current page (attempts to partially preserve vertical text positions)">Save selectable text</button>
