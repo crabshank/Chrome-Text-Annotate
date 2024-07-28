@@ -953,7 +953,7 @@ function insertAfter(newNode, existingNode) {
 }
 
 
-function doMark(s, markOnly, noMark){]
+function doMark(s, markOnly, noMark){
 
 	let sel= s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? getMatchingNodesShadow_order(document,s,false,false) : [document.documentElement];
 	textAnnotate.selector= markOnly===true || isMarked===true  ? null : s ;
