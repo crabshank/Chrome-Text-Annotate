@@ -953,9 +953,9 @@ function insertAfter(newNode, existingNode) {
 }
 
 
-function doMark(s, markOnly, noMark){
-	let selectEls=getMatchingNodesShadow_order(document,s,false,false);
-	let sel= s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? selectEls : [document.documentElement];
+function doMark(s, markOnly, noMark){]
+
+	let sel= s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? getMatchingNodesShadow_order(document,s,false,false) : [document.documentElement];
 	textAnnotate.selector= markOnly===true || isMarked===true  ? null : s ;
 	if(sel===null && s!==false){
 		alert('Invalid CSS selector!');
@@ -1430,8 +1430,7 @@ var fs={
 					    let txt=[];
 					    let scts=[];
 						let sb={};
-						let selectEls=getMatchingNodesShadow_order(document,s,false,false);
-						let sel= s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? selectEls : [document.documentElement];
+						let sel= s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? getMatchingNodesShadow_order(document,s,false,false) : [document.documentElement];
 							
 						for(let i=0, len_i=sel.length; i<len_i; i++){
 							let el=sel[i];
