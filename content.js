@@ -969,8 +969,8 @@ function doMark(s, markOnly, noMark){
 		textAnnotate.sct.style.setProperty( 'z-index', Number.MAX_SAFE_INTEGER, 'important' );
 		textAnnotate.sct.style.setProperty( 'display', 'none','important' );
 		textAnnotate.sct.style.setProperty( 'top', '0px', 'important' );
-		textAnnotate.sct.style.setProperty( 'left', '0px', 'important' );
-		textAnnotate.sct.style.setProperty( 'width', '100%', 'important' );
+		textAnnotate.sct.style.setProperty( 'right', '0px', 'important' );
+		textAnnotate.sct.style.setProperty( 'width', 'max-content', 'important' );
 		textAnnotate.sct.style.setProperty( 'position', 'fixed', 'important' );
 		textAnnotate.sct.style.setProperty( 'margin', 0, 'important' );
 		textAnnotate.sct.style.setProperty( 'border', 0, 'important' );
