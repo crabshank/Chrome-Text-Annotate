@@ -954,8 +954,8 @@ function insertAfter(newNode, existingNode) {
 
 
 function doMark(s, markOnly, noMark){
-	let selectEls=getMatchingNodesShadow_order(document,s,false,false);
-	let sel= s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? selectEls : [document.documentElement];
+
+	let sel= s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? getMatchingNodesShadow_order(document,s,false,false) : [document.documentElement];
 	textAnnotate.selector= markOnly===true || isMarked===true  ? null : s ;
 	if(sel===null && s!==false){
 		alert('Invalid CSS selector!');
@@ -969,8 +969,8 @@ function doMark(s, markOnly, noMark){
 		textAnnotate.sct.style.setProperty( 'z-index', Number.MAX_SAFE_INTEGER, 'important' );
 		textAnnotate.sct.style.setProperty( 'display', 'none','important' );
 		textAnnotate.sct.style.setProperty( 'top', '0px', 'important' );
-		textAnnotate.sct.style.setProperty( 'left', '0px', 'important' );
-		textAnnotate.sct.style.setProperty( 'width', '100%', 'important' );
+		textAnnotate.sct.style.setProperty( 'right', '0px', 'important' );
+		textAnnotate.sct.style.setProperty( 'width', 'max-content', 'important' );
 		textAnnotate.sct.style.setProperty( 'position', 'fixed', 'important' );
 		textAnnotate.sct.style.setProperty( 'margin', 0, 'important' );
 		textAnnotate.sct.style.setProperty( 'border', 0, 'important' );
@@ -1430,8 +1430,7 @@ var fs={
 					    let txt=[];
 					    let scts=[];
 						let sb={};
-						let selectEls=getMatchingNodesShadow_order(document,s,false,false);
-						let sel= s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? selectEls : [document.documentElement];
+						let sel= s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? getMatchingNodesShadow_order(document,s,false,false) : [document.documentElement];
 							
 						for(let i=0, len_i=sel.length; i<len_i; i++){
 							let el=sel[i];
