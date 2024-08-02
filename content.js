@@ -811,7 +811,7 @@ ta.populateFrameHover=(argm)=>{ //Setup iFrame
 			opts=optns.join('\n');
 
 			ta.ifrm_document.body.innerHTML=`
-		<section style="display: flex; flex-direction: row; place-items: flex-start;"> <div id="selText" style="border:buttonface; border-width: 0.28ch; border-style: groove; padding: 0.2ch;" title="${ isPatt===true ? 'Enter search pattern (regex, without bounding forward slashes/plaintext)' : ''}"${ isPatt===true ? ' contenteditable' : ' selmarks="'+mksj+'"'}>${sel}</div>${ isPatt===true ? '<section style="display: flex; flex-direction:column;"><section style="display: flex;flex-direction: row;"><input type="checkbox" title="Regex, by default" id="plainSearch" style="place-self: center"></input><span style="text-wrap: nowrap;align-self: center;" title="Regex, by default">Plain text</span></section><section style="display: flex;flex-direction: row;"><input type="checkbox" id="caseInsens" style="place-self: center"></input><span style="text-wrap: nowrap;align-self: center;">Case-insensitive</span></section></section>' : ''}<button id="hideFrame" style="float:right;width: 4.3ch;color: red;background: black;border: 1px buttonface outset;margin-left: 0.02ch;">❌</button></section>
+		<section style="display: flex; flex-direction: row; place-items: flex-start;"> <div id="selText" style="border:buttonface; border-width: 0.28ch; border-style: groove; padding: 0.2ch;" title="${ isPatt===true ? 'Enter search pattern (regex, without bounding forward slashes/plaintext)' : ''}"${ isPatt===true ? ' contenteditable' : ' selmarks="'+mksj+'"'}>${sel}</div>${ isPatt===true ? '<section style="display: flex; flex-direction:column;"><section style="display: flex;flex-direction: row;"><input type="checkbox" title="Regex, by default" id="plainSearch" style="place-self: center"></input><span style="text-wrap: nowrap;align-self: center;" title="Regex, by default">Plain text</span></section><section style="display: flex;flex-direction: row;"><input type="checkbox" id="caseInsens" style="place-self: center"></input><span style="text-wrap: nowrap;align-self: center;">Case-insensitive</span></section><section style="display: flex;flex-direction: row;"><input type="checkbox" id="unic" style="place-self: center"><span style="text-wrap: nowrap;align-self: center;">Unicode regex</span></section></section>' : ''}<button id="hideFrame" style="float:right;width: 4.3ch;color: red;background: black;border: 1px buttonface outset;margin-left: 0.02ch;">❌</button></section>
 		<section style="width: max-content;">
 			<section id="nameForm">
 			<form>
@@ -938,6 +938,7 @@ ta.populateFrameHover=(argm)=>{ //Setup iFrame
 				if(typPD_undef===false){					
 					idc.getElementById('plainSearch').checked=pattData[1];
 					idc.getElementById('caseInsens').checked=pattData[2];
+					idc.getElementById('unic').checked=pattData[3];
 				}
 			}
 
@@ -1051,7 +1052,8 @@ function doMark(s, markOnly, noMark){
 				let patEl=idc.getElementById('selText');
 				let isPlain= idc.getElementById('plainSearch').checked ? true : false ;
 				let isCaseInsens= idc.getElementById('caseInsens').checked ? true : false ;
-				let p= isPlain ? patEl.innerText : new RegExp(patEl.innerText, (isCaseInsens ? "gi" : "g"));
+				let rx= idc.getElementById('unic').checked ? 'u' : '' ;
+				let p= isPlain ? patEl.innerText : new RegExp(patEl.innerText, (isCaseInsens ? rx+"gi" : rx+"g"));
 				let mks=textAnnotate.findMarks(p,isPlain,isCaseInsens);
 				let cols=null;
 				let chkd=[...textAnnotate.ifrm_document.querySelectorAll('input.types[type="checkbox"]:checked')].map((c)=>{return c.parentElement.innerText;});
@@ -1112,7 +1114,7 @@ function doMark(s, markOnly, noMark){
 						textAnnotate.options.push(opt);
 						let slt=textAnnotate.ifrm_document.getElementById('selText');
 						if(t.id==='addOpt_patt'){
-							textAnnotate.populateFrame([slt.innerText,slt.getAttribute('selmarks')],[[...textAnnotate.ifrm_document.querySelectorAll('#checkboxes input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;}) , [...textAnnotate.ifrm_document.querySelectorAll('#checkboxesCol input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;})],true,[textAnnotate.ifrm_document.getElementById('selText').innerText,textAnnotate.ifrm_document.getElementById('plainSearch').checked,textAnnotate.ifrm_document.getElementById('caseInsens').checked]);
+							textAnnotate.populateFrame([slt.innerText,slt.getAttribute('selmarks')],[[...textAnnotate.ifrm_document.querySelectorAll('#checkboxes input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;}) , [...textAnnotate.ifrm_document.querySelectorAll('#checkboxesCol input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;})],true,[textAnnotate.ifrm_document.getElementById('selText').innerText,textAnnotate.ifrm_document.getElementById('plainSearch').checked,textAnnotate.ifrm_document.getElementById('caseInsens').checked,textAnnotate.ifrm_document.getElementById('unic').checked]);
 						}else{
 							textAnnotate.populateFrame([slt.innerText,slt.getAttribute('selmarks')],[[...textAnnotate.ifrm_document.querySelectorAll('#checkboxes input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;}) , [...textAnnotate.ifrm_document.querySelectorAll('#checkboxesCol input[type="checkbox"]')].filter(c=>{return c.checked; }).map(c=>{return c.parentElement.innerText;})]);
 						}
