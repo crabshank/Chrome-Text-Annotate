@@ -851,7 +851,7 @@ ta.populateFrameHover=(argm)=>{ //Setup iFrame
 		  </div>
 		</form>
 		</section>
-		${isPatt===true ? '' : '<section style="display: flex; flex-direction: row;">' }<button style="white-space: nowrap;" id="${ isPatt===true ? 'pattSearch' : 'nameSel'}">${ isPatt===true ? 'Search pattern!' : 'Name selection!'}</button>${isPatt===true ? '' : '	<button style="white-space: nowrap;=:right;right: 0;position: absolute;" id="genPatSearch">Search for text</button></section>' }
+		${isPatt===true ? '' : '<section style="display: flex; flex-direction: row;">' }<button style="white-space: nowrap;" id="${ isPatt===true ? 'pattSearch' : 'nameSel'}">${ isPatt===true ? 'Search pattern!' : 'Name selection!'}</button>${isPatt===true ? '' : '	<button style="white-space: nowrap; right: 0;position: absolute;" id="genPatSearch">Search for text</button></section>' }
 		</section>`;
 		
 		let idc=ta.ifrm_document;
