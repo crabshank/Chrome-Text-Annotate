@@ -16789,7 +16789,6 @@ var PDFViewerApplication = {
     }
     document.title = title;
 	history.pushState(null,null,'#'+document.title);
-	document.head.insertAdjacentHTML('afterbegin','<style>mark.no_hl[indexnumber]{background-color:unset !important; color:unset !important;}</style>');
   },
 
   close: function pdfViewClose() {
