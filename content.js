@@ -1631,7 +1631,7 @@ observer.observe(document, {
 if(typeof observer2 ==="undefined"){
 const observer2 = new MutationObserver((mutations) =>
 {
-
+if(urlMatch[0] || isMarked){
 	
 	let adn=mutations.map(m=>{return [...m.removedNodes]});
 	for(let i=0, len_i=adn.length; i<len_i; ++i){
@@ -1680,6 +1680,7 @@ const observer2 = new MutationObserver((mutations) =>
 			}
 			addedNodes_toProc=[];
 	}
+}
 });
 
 
