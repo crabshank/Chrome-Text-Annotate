@@ -14563,11 +14563,12 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
 			}
 	}
 	
-	this.textLayerDiv.appendChild(textLayerFrag);
-		for(let k=0, len_k=this.textLayerDiv.children.length; k<len_k; k++){
-			let pk=this.textLayerDiv.children[k];
+	
+		for(let k=0, len_k=textLayerFrag.children.length; k<len_k; k++){
+			let pk=textLayerFrag.children[k];
 			pk.innerHTML=pk.innerHTML.replaceAll('&lt;mark textCol="','<mark textCol="').replaceAll('&lt;mark indexnumber="','<mark indexnumber="').replaceAll('" class="no_hl"&gt;','" class="no_hl">').replaceAll('&lt;/mark&gt;','</mark>');
 		}
+        this.textLayerDiv.appendChild(textLayerFrag);
       this._finishRendering();
       this.updateMatches();
     },
