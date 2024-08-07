@@ -1,1 +1,1 @@
-The folder `pdf_viewer_STORE_ELSEWHERE!` contains a version of [https://github.com/crabshank/pdf.js-viewer](https://github.com/crabshank/pdf.js-viewer) that loads a marked version of the text layer for all pages. Store this forlder somewhere other thnat with these extension files.
+The folder `pdf_viewer_STORE_ELSEWHERE!` contains a version of [https://github.com/crabshank/pdf.js-viewer](https://github.com/crabshank/pdf.js-viewer) that loads a marked version of the text layer for all pages. Store this folder somewhere other thnat with these extension files.
