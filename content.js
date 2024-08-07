@@ -9,6 +9,7 @@ var tb_id=null;
 var tb_ttl=document.title;
 var textAnnotate;
 var docEvts={};
+let addedNodes_toProc=[];
 
 function hashReset(){
     addrs=[];
@@ -1623,6 +1624,68 @@ observer.observe(document, {
 	attributeOldValue: true,
 	characterData: true,
 	characterDataOldValue: true
+});
+		
+}
+
+if(typeof observer2 ==="undefined"){
+const observer2 = new MutationObserver((mutations) =>
+{
+
+	
+	let adn=mutations.map(m=>{return [...m.removedNodes]});
+	for(let i=0, len_i=adn.length; i<len_i; ++i){
+		let adni=adn[i];
+		for(let k=0, len_k=adni.length; k<len_k; ++k){
+			let adnik=adni[k];
+			if(adnik.nodeName==='MARK'){
+				let x=addedNodes_toProc.findIndex(n=>{return n===adnik});
+				if(x!==-1){
+					addedNodes_toProc.splice(x, 1);
+				}
+			}
+		}
+	}
+	
+	adn=mutations.map(m=>{return [...m.addedNodes]});
+	for(let i=0, len_i=adn.length; i<len_i; ++i){
+		let adni=adn[i];
+		for(let k=0, len_k=adni.length; k<len_k; ++k){
+			let adnik=adni[k];
+			if(adnik.nodeName==='MARK' && !addedNodes_toProc.includes(adnik)){
+				addedNodes_toProc.push(adnik);
+			}
+		}
+	}
+	let adnl=addedNodes_toProc.length;
+	if(adnl>0){
+	let lookup_m={};
+			for(let i=0, len_i=adnl; i<len_i; ++i){
+				let m=addedNodes_toProc[i];
+				let ix=m.getAttribute('indexnumber');
+				lookup_m[ix]=m;
+			}
+			for(let i=0, len_i=textAnnotate.annotations.length; i<len_i; ++i){
+				let ai=textAnnotate.annotations[i];
+				for(let j=0, len_j=ai.nodeIndexes.length; j<len_j; ++j){
+					let aij=ai.nodeIndexes[j];
+					let s=aij.toString();
+					if(typeof(lookup_m[s])!=='undefined'){
+						let m=lookup_m[s];
+						m.classList.remove('no_hl');
+						m.style.backgroundColor=ai.hexRGB;
+						m.setAttribute('textcol',ai.textCol);
+					}
+				}
+			}
+			addedNodes_toProc=[];
+	}
+});
+
+
+observer2.observe(document, {
+    subtree: true,
+	childList: true
 });
 		
 }
