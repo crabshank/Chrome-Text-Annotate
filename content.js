@@ -1674,7 +1674,7 @@ if(urlMatch[0] || isMarked){
 	let adnl=addedNodes_toProc.length;
 	if(adnl>0){
 	let lookup_m={};
-			for(let i=0, len_i=adnl; i<len_i; ++i){
+			for(let i=0; i<adnl; ++i){
 				let m=addedNodes_toProc[i];
 				let ix=m.getAttribute('indexnumber');
 				lookup_m[ix]=m;
