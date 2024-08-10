@@ -34,6 +34,7 @@ if(document.location.hash!==''){
 }
 
 var setupMarks=[];
+var allTextMarks=[];
 
 function getMatchingNodesShadow_order(docm, slc, isNodeName, onlyShadowRoots){
 	
@@ -13945,10 +13946,15 @@ var PDFPageView = (function PDFPageViewClosure() {
 	this.textLayerFactory.findController.pdfViewer.getPageTextContent(this.id-1).then((result)=>{
 		let chrs=result.items;
 		let cnt=0;
+        let mkd=[];
 		for(let i=0, len=chrs.length; i<len; ++i){
-			cnt+=chrs[i].str.length;
+            let chis=chrs[i].str;
+			cnt+=chis.length;
+            mkd.push(chis);
 		}
-		setupMarks[result.pageIndex]=[cnt];
+        let rx=result.pageIndex;
+		setupMarks[rx]=[cnt];
+        allTextMarks[rx]=mkd.join('');
 	});
   }
 
@@ -14518,12 +14524,22 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
       }
 	if(setupMarks[0].length===1 && setupMarks.filter(m=>{return typeof(m!=='undefined')}).length===this.findController.pdfViewer.pdfDocument.pdfInfo.numPages){
 		let c=0;
+        let cnt=0;
 		for(let i=0, len=setupMarks.length; i<len; ++i){
 			let si=setupMarks[i];
 			let si0=si[0];
 			setupMarks[i].push(c,c+si0-1);
 			c+=si0;
+            
+            let mi=allTextMarks[i];
+            let mk=[];
+            for(let j=0, len_j=mi.length; j<len_j; ++j){
+                mk.push(`<mark class="no_hl" indexnumber="${cnt}">`+mi[j]+'</mark>');
+                cnt++;
+            }
+            allTextMarks[i]=mk.join('');
 		}
+        document.getElementById('allText').innerHTML=allTextMarks.join('');
 	}
 
 		if(textLayerFrag.childNodes.length>0){
@@ -17677,6 +17693,7 @@ function webViewerInitialized() {
     var xhr = new XMLHttpRequest();
     xhr.onload = function() {
 	  setupMarks=[];
+      allTextMarks=[0,[]];
       PDFViewerApplication.open(new Uint8Array(xhr.response), 0);
     };
     try {
@@ -17692,6 +17709,7 @@ function webViewerInitialized() {
 
   if (file) {
 	setupMarks=[];
+    allTextMarks=[0,[]];
     PDFViewerApplication.open(file, 0);
   }
 }
@@ -17847,6 +17865,7 @@ window.addEventListener('change', function webViewerChange(evt) {
   if (!PDFJS.disableCreateObjectURL &&
       typeof URL !== 'undefined' && URL.createObjectURL) {
 	setupMarks=[];
+    allTextMarks=[0,[]];
     PDFViewerApplication.open(URL.createObjectURL(file), 0);
   } else {
     // Read the local file into a Uint8Array.
@@ -17855,6 +17874,7 @@ window.addEventListener('change', function webViewerChange(evt) {
       var buffer = evt.target.result;
       var uint8Array = new Uint8Array(buffer);
 	  setupMarks=[];
+      allTextMarks=[0,[]];
       PDFViewerApplication.open(uint8Array, 0);
     };
     fileReader.readAsArrayBuffer(file);
