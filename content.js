@@ -336,19 +336,25 @@ ta.nameSelection=function(names, altText,hexRGB,ix){ //Create annotation for sel
 		for(let i=0, len_i=stx2.length; i<len_i; i++){
 			let s2i=stx2[i];
 			let n=parseInt(s2i.getAttribute('indexnumber'));
-			stx_doc[n]=s2i;
+            if(typeof(stx_doc[n])==='undefined'){
+                stx_doc[n]=[s2i];
+            }else{
+                stx_doc[n].push(s2i);
+            }
 		}
 		for(let i=0, len_i=stx.length; i<len_i; i++){
 			let stxi=stx[i];
             selNodes.push(stxi);
-            stx_doc[stxi].className='';
-            stx_doc[stxi].style.backgroundColor=srgb;
-			let txc=stx_doc[ selNodes[0] ].getAttribute('textCol');
-			txc=txc!==null ? txc : stx_doc[0].getAttribute('textCol');
-			stx_doc[stxi].style.color=txc;
-			if(i===0){
-				firstTCol=txc;
-			}
+            stx_doc[stxi].forEach(m=>{
+                m.className='';
+                m.style.backgroundColor=srgb;
+                let txc=stx_doc[ selNodes[0] ].at(-1).getAttribute('textcol');
+                txc=txc!==null ? txc : stx_doc[0].at(-1).getAttribute('textcol');
+                m.style.color=txc;
+                if(i===0){
+                    firstTCol=txc;
+                }
+            });
 		}
 		
 		if(selNodes.length>0){
@@ -493,8 +499,8 @@ ta.hlMarks=function(el){ //Highlight marks after ta.annotations has already been
 				let msx=mks[ix];
 				msx.className='';
 				msx.style.backgroundColor=ai.hexRGB;
-				let txc=msx.getAttribute('textCol');
-				msx.style.color=txc!==null ? txc : mks[0].getAttribute('textCol');
+				let txc=msx.getAttribute('textcol');
+				msx.style.color=txc!==null ? txc : mks[0].getAttribute('textcol');
 			}
 		}
 	}
@@ -589,6 +595,18 @@ ta.removeOptions=function(opt){	//'opt' is a string or array of strings
 }
 
 ta.findMarks=function(pat,plain,case_insensitive){	//search for marked text
+  
+										
+    if(isMarked && (ta.markText==='' || ta.markText===null ) ){
+        let txt=[];
+          let stx=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false);
+          for(let i=0, len=stx.length; i<len; ++i){
+            let m=stx[i];
+            let mtx=m.textContent;
+            txt[ parseInt(m.getAttribute('indexnumber')) ]=mtx!=='' ? mtx : String.fromCharCode(8203);
+          }
+          ta.markText=txt.join('');
+    }
     let str=ta.markText;
     let out=[];
     if(plain===true){
@@ -626,6 +644,21 @@ ta.findMarks=function(pat,plain,case_insensitive){	//search for marked text
 
 ta.searchSelect=function(mks,hexRGB,types,altText){	//search for marked text and select; mks=ta.findMarks(pat,plain,case_insensitive);
 
+        let stx2=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false);
+		let stx_doc=[];
+		let firstTCol;
+		stx_doc.length=stx2.length;
+		let srgb=(typeof(hexRGB)==='string')?hexRGB:'#FFFF00';
+		for(let i=0, len_i=stx2.length; i<len_i; i++){
+			let s2i=stx2[i];
+			let n=parseInt(s2i.getAttribute('indexnumber'));
+            if(typeof(stx_doc[n])==='undefined'){
+                stx_doc[n]=[s2i];
+            }else{
+                stx_doc[n].push(s2i);
+            }
+		}
+
     for(let i=0, len_i=mks.length; i<len_i; i++){
         let mi=mks[i];
         let mitx=mi.text;
@@ -652,27 +685,19 @@ ta.searchSelect=function(mks,hexRGB,types,altText){	//search for marked text and
 				an.nodeIndexes=selNodes;
 			}
 
-        let stx2=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false);
-		let stx_doc=[];
-		let firstTCol;
-		stx_doc.length=stx2.length;
-		let srgb=(typeof(hexRGB)==='string')?hexRGB:'#FFFF00';
-		for(let i=0, len_i=stx2.length; i<len_i; i++){
-			let s2i=stx2[i];
-			let n=parseInt(s2i.getAttribute('indexnumber'));
-			stx_doc[n]=s2i;
-		}
 		
 		for(let i=0, len_i=selNodes.length; i<len_i; i++){
 			let stxi=selNodes[i];
-            stx_doc[stxi].className='';
-            stx_doc[stxi].style.backgroundColor=srgb;
-			let txc=stx_doc[ selNodes[0] ].getAttribute('textCol');
-			txc=txc!==null ? txc : stx_doc[0].getAttribute('textCol');
-			stx_doc[stxi].style.color=txc;
-			if(i===0){
-				firstTCol=txc;
-			}
+            stx_doc[stxi].forEach(m=>{
+                m.className='';
+                m.style.backgroundColor=srgb;
+                let txc=stx_doc[ selNodes[0] ].at(-1).getAttribute('textcol');
+                txc=txc!==null ? txc : stx_doc[0].at(-1).getAttribute('textcol');
+                m.style.color=txc;
+                if(i===0){
+                    firstTCol=txc;
+                }
+            });
 		}
 
             an.textCol=firstTCol;
@@ -999,7 +1024,14 @@ function doMark(s, markOnly, noMark){
 		textAnnotate.ifrm_document.oninput=function(e){
 			let t=e.target;
 			let f=t.getAttribute('func');
-			if(f==='setHeights'){
+			if(t.id==='plainSearch'){
+                let u=t.ownerDocument.getElementById('unic').parentElement;
+                if(t.checked){
+                  u.style.visibility='hidden';
+                }else{
+                  u.style.visibility='visible';
+                }
+            }else if(f==='setHeights'){
 				t.style.height='min-content';
 				t.style.height=t.scrollHeight+3;
 			}else if(f==='checkCols'){
@@ -1598,6 +1630,7 @@ function gotMessage(message, sender, sendResponse) {
 
 chrome.runtime.onMessage.addListener(gotMessage);
 
+
 function timer_func(){
             if (window.location.href != chg) {
                 chg = window.location.href;
@@ -1647,28 +1680,24 @@ const observer2 = new MutationObserver((mutations) =>
 {
 if(urlMatch[0] || isMarked){
 	
-	let adn=mutations.map(m=>{return [...m.removedNodes]});
+	let adn=mutations.map(m=>{return [...m.addedNodes]});
 	for(let i=0, len_i=adn.length; i<len_i; ++i){
 		let adni=adn[i];
 		for(let k=0, len_k=adni.length; k<len_k; ++k){
 			let adnik=adni[k];
-			if(adnik.nodeName==='MARK'){
-				let x=addedNodes_toProc.findIndex(n=>{return n===adnik});
-				if(x!==-1){
-					addedNodes_toProc.splice(x, 1);
-				}
-			}
-		}
-	}
-	
-	adn=mutations.map(m=>{return [...m.addedNodes]});
-	for(let i=0, len_i=adn.length; i<len_i; ++i){
-		let adni=adn[i];
-		for(let k=0, len_k=adni.length; k<len_k; ++k){
-			let adnik=adni[k];
-			if(adnik.nodeName==='MARK' && !addedNodes_toProc.includes(adnik)){
-				addedNodes_toProc.push(adnik);
-			}
+            let x=null;
+            try{
+                x=adnik.getAttribute('indexnumber');
+            }catch(e){;}
+			if(adnik.nodeName==='MARK' && x!==null){
+				addedNodes_toProc.push([adnik,x]);
+			}else{
+                let mks=getMatchingNodesShadow_order(adnik,'mark[indexnumber]',false,false);
+                for(let j=0, len_j=mks.length; j<len_j; ++j){
+                let mksj=mks[j];
+                addedNodes_toProc.push([mksj,mksj.getAttribute('indexnumber')]);
+      }
+            }
 		}
 	}
 	let adnl=addedNodes_toProc.length;
@@ -1676,8 +1705,7 @@ if(urlMatch[0] || isMarked){
 	let lookup_m={};
 			for(let i=0; i<adnl; ++i){
 				let m=addedNodes_toProc[i];
-				let ix=m.getAttribute('indexnumber');
-				lookup_m[ix]=m;
+				lookup_m[m[1]]=m[0];
 			}
 			for(let i=0, len_i=textAnnotate.annotations.length; i<len_i; ++i){
 				let ai=textAnnotate.annotations[i];
