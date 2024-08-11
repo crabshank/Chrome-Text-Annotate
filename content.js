@@ -348,8 +348,8 @@ ta.nameSelection=function(names, altText,hexRGB,ix){ //Create annotation for sel
             stx_doc[stxi].forEach(m=>{
                 m.className='';
                 m.style.backgroundColor=srgb;
-                let txc=stx_doc[ selNodes[0] ].at(-1).getAttribute('textcol');
-                txc=txc!==null ? txc : stx_doc[0].at(-1).getAttribute('textcol');
+                let txc=stx_doc[ selNodes[0] ][0].getAttribute('textcol');
+                txc=txc!==null ? txc : stx_doc[0][0].getAttribute('textcol');
                 m.style.color=txc;
                 if(i===0){
                     firstTCol=txc;
@@ -542,12 +542,18 @@ ta.remove=function(n){  //Remove annotations as array; n is number or array of n
 		for(let i=0, len_i=mks.length; i<len_i; i++){
 			let mki=mk[i];
 			let ix=parseInt(mki.getAttribute('indexnumber'));
-			mks[ix]=mki;
+			if(typeof	(mks[ix])==='undefined'){
+				mks[ix]=[mki];
+			}else{
+				mks[ix].push(mki);
+			}
 		}
 
 		for(let j=0, len_j=ank.nodeIndexes.length; j<len_j; j++){
 			let nj=ank.nodeIndexes[j];
-			mks[nj].className='no_hl';
+			mks[nj].forEach(m=>{
+				m.className='no_hl';
+			});
 		}
 		ixs.push(nk);
 	}
@@ -691,8 +697,8 @@ ta.searchSelect=function(mks,hexRGB,types,altText){	//search for marked text and
             stx_doc[stxi].forEach(m=>{
                 m.className='';
                 m.style.backgroundColor=srgb;
-                let txc=stx_doc[ selNodes[0] ].at(-1).getAttribute('textcol');
-                txc=txc!==null ? txc : stx_doc[0].at(-1).getAttribute('textcol');
+                let txc=stx_doc[ selNodes[0] ][0].getAttribute('textcol');
+                txc=txc!==null ? txc : stx_doc[0][0].getAttribute('textcol');
                 m.style.color=txc;
                 if(i===0){
                     firstTCol=txc;
