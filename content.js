@@ -345,16 +345,18 @@ ta.nameSelection=function(names, altText,hexRGB,ix){ //Create annotation for sel
 		for(let i=0, len_i=stx.length; i<len_i; i++){
 			let stxi=stx[i];
             selNodes.push(stxi);
-            stx_doc[stxi].forEach(m=>{
-                m.className='';
-                m.style.backgroundColor=srgb;
-                let txc=stx_doc[ selNodes[0] ][0].getAttribute('textcol');
-				txc=txc!==null ? txc : ( typeof(stx_doc[0])==='undefined' ? '#000000' : stx_doc[0][0].getAttribute('textcol'));		
-                m.style.color=txc;
-                if(i===0){
-                    firstTCol=txc;
-                }
-            });
+			if(typeof (stx_doc[stxi]) !=='undefined'){
+				stx_doc[stxi].forEach(m=>{
+					m.className='';
+					m.style.backgroundColor=srgb;
+					let txc=stx_doc[ selNodes[0] ][0].getAttribute('textcol');
+					txc=txc!==null ? txc : ( typeof(stx_doc[0])==='undefined' ? '#000000' : stx_doc[0][0].getAttribute('textcol'));		
+					m.style.color=txc;
+					if(i===0){
+						firstTCol=txc;
+					}
+				});
+			}
 		}
 		
 		if(selNodes.length>0){
@@ -690,16 +692,18 @@ ta.searchSelect=function(mks,hexRGB,types,altText){	//search for marked text and
 		
 		for(let i=0, len_i=selNodes.length; i<len_i; i++){
 			let stxi=selNodes[i];
-            stx_doc[stxi].forEach(m=>{
-                m.className='';
-                m.style.backgroundColor=srgb;
-                let txc=stx_doc[ selNodes[0] ][0].getAttribute('textcol');
-                txc=txc!==null ? txc : ( typeof(stx_doc[0])==='undefined' ? '#000000' : stx_doc[0][0].getAttribute('textcol'));
-                m.style.color=txc;
-                if(i===0){
-                    firstTCol=txc;
-                }
-            });
+			if(typeof (stx_doc[stxi]) !=='undefined'){
+				stx_doc[stxi].forEach(m=>{
+					m.className='';
+					m.style.backgroundColor=srgb;
+					let txc=stx_doc[ selNodes[0] ][0].getAttribute('textcol');
+					txc=txc!==null ? txc : ( typeof(stx_doc[0])==='undefined' ? '#000000' : stx_doc[0][0].getAttribute('textcol'));
+					m.style.color=txc;
+					if(i===0){
+						firstTCol=txc;
+					}
+				});
+			}
 		}
 
             an.textCol=firstTCol;
@@ -1084,27 +1088,31 @@ function doMark(s, markOnly, noMark){
 					expanded = false;
 				}
 			}else if(t.id==='pattSearch'){
-				let idc=textAnnotate.ifrm_document;
-				let patEl=idc.getElementById('selText');
-				let isPlain= idc.getElementById('plainSearch').checked ? true : false ;
-				let isCaseInsens= idc.getElementById('caseInsens').checked ? true : false ;
-				let rx= idc.getElementById('unic').checked ? 'u' : '' ;
-				let p= isPlain ? patEl.innerText : new RegExp(patEl.innerText, (isCaseInsens ? rx+"gi" : rx+"g"));
-				let mks=textAnnotate.findMarks(p,isPlain,isCaseInsens);
-				let cols=null;
-				let chkd=[...textAnnotate.ifrm_document.querySelectorAll('input.types[type="checkbox"]:checked')].map((c)=>{return c.parentElement.innerText;});
-				try{ 
-					cols=[[...textAnnotate.ifrm_document.querySelectorAll('input.col[type="checkbox"]:checked')][0]].map((c)=>{let cpar=c.parentElement; let cpc=cpar.childNodes; return cpc[cpc.length-1].textContent;})[0];
-					cols=(cols==="Custom")?null:cols;
-				}catch(e){;}
-				let altTexts=[...textAnnotate.ifrm_document.querySelectorAll('textarea.altText')].map((b)=>{return b.value;}).filter((b)=>{return b!==''});
-				let altTx;
-				if(altTexts===null || altTexts.length===0){
-						altTx=null;
-				}else{
-						altTx=(altTexts.length===1)?altTexts[0]:altTexts;
+				try{
+					let idc=textAnnotate.ifrm_document;
+					let patEl=idc.getElementById('selText');
+					let isPlain= idc.getElementById('plainSearch').checked ? true : false ;
+					let isCaseInsens= idc.getElementById('caseInsens').checked ? true : false ;
+					let rx= idc.getElementById('unic').checked ? 'u' : '' ;
+					let p= isPlain ? patEl.innerText : new RegExp(patEl.innerText, (isCaseInsens ? rx+"gi" : rx+"g"));
+					let mks=textAnnotate.findMarks(p,isPlain,isCaseInsens);
+					let cols=null;
+					let chkd=[...textAnnotate.ifrm_document.querySelectorAll('input.types[type="checkbox"]:checked')].map((c)=>{return c.parentElement.innerText;});
+					try{ 
+						cols=[[...textAnnotate.ifrm_document.querySelectorAll('input.col[type="checkbox"]:checked')][0]].map((c)=>{let cpar=c.parentElement; let cpc=cpar.childNodes; return cpc[cpc.length-1].textContent;})[0];
+						cols=(cols==="Custom")?null:cols;
+					}catch(e){;}
+					let altTexts=[...textAnnotate.ifrm_document.querySelectorAll('textarea.altText')].map((b)=>{return b.value;}).filter((b)=>{return b!==''});
+					let altTx;
+					if(altTexts===null || altTexts.length===0){
+							altTx=null;
+					}else{
+							altTx=(altTexts.length===1)?altTexts[0]:altTexts;
+					}
+					textAnnotate.searchSelect(mks,cols,chkd,altTx);
+				}finally{
+					textAnnotate.sct.style.setProperty( 'display', 'none','important' );
 				}
-				textAnnotate.searchSelect(mks,cols,chkd,altTx);
 			}else if(t.id==='genPatSearch'){
                 textAnnotate.populateFrame(undefined,undefined,true);
         }else if(t.id==='nameSel'){
