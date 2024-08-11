@@ -14524,6 +14524,7 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
       }
 	  
 	if(setupMarks[0].length===1 && setupMarks.filter(m=>{return typeof(m!=='undefined')}).length===this.findController.pdfViewer.pdfDocument.pdfInfo.numPages){
+		allTextDiv.innerHTML='';
 		let c=0;
         let cnt=0;
 		let allTextDiv=document.getElementById('textAnnotate_markText');
@@ -14544,7 +14545,7 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
             allTextMarks[i]=mk.join('');
 		}
 		try{
-			allTextDiv.innerHTML=allTextMarks.join('');
+			allTextDiv.textContent=allTextMarks.join('');
 		}catch(e){
 			allTextDiv.innerHTML='';
 			let str='';
@@ -14570,7 +14571,7 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
 					}
 			}
 			for(let j=0, len_j=outText.length; j<len_j; ++j){
-				allTextDiv.innerHTML+=outText[j];
+				allTextDiv.textContent+=outText[j];
 			}
 		}
 	}
