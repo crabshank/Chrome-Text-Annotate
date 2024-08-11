@@ -14525,6 +14525,7 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
 	if(setupMarks[0].length===1 && setupMarks.filter(m=>{return typeof(m!=='undefined')}).length===this.findController.pdfViewer.pdfDocument.pdfInfo.numPages){
 		let c=0;
         let cnt=0;
+		let allTextDiv=document.getElementById('allText');
 		for(let i=0, len=setupMarks.length; i<len; ++i){
 			let si=setupMarks[i];
 			let si0=si[0];
@@ -14539,7 +14540,36 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
             }
             allTextMarks[i]=mk.join('');
 		}
-        document.getElementById('allText').innerHTML=allTextMarks.join('');
+		try{
+			allTextDiv.innerHTML=allTextMarks.join('');
+		}catch(e){
+			allTextDiv.innerHTML='';
+			let str='';
+			let str2=allTextMarks[0];
+			let outText=[];
+			let jc=0;
+			for(let j=0, len_j=allTextMarks.length; j<len_j; ++j){
+					try{
+							if(jc>1){
+								str2+=allTextMarks[j-1];
+							}
+							str+=allTextMarks[j];
+							jc++;
+							if(j===len_j-1){
+								outText.push(str);
+							}
+					}catch(e){
+							outText.push(str2);
+							str='';
+							str2=allTextMarks[j];
+                            j--;
+							jc=0;
+					}
+			}
+			for(let j=0, len_j=outText.length; j<len_j; ++j){
+				allTextDiv.innerHTML+=outText[j];
+			}
+		}
 	}
 
 		if(textLayerFrag.childNodes.length>0){
