@@ -14488,9 +14488,9 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
       var lastFontFamily;
       for (var i = 0; i < textDivsLength; i++) {
         var textDiv = textDivs[i];
-        if (textDiv.dataset.isWhitespace !== undefined) {
+        /*if (textDiv.dataset.isWhitespace !== undefined) {
           continue;
-        }
+        }*/
 
         var fontSize = textDiv.style.fontSize;
         var fontFamily = textDiv.style.fontFamily;
@@ -14533,17 +14533,8 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
 			let si0=si[0];
 			setupMarks[i].push(c,c+si0-1);
 			c+=si0;
-            
-            let mi=allTextMarks[i];
-            let mk=[];
-            for(let j=0, len_j=mi.length; j<len_j; ++j){
-				let mij=mi[j];
-				mij=mij==='' ? String.fromCharCode(8203) : mij ;
-                mk.push(mij);
-                cnt++;
-            }
-            allTextMarks[i]=mk.join('');
 		}
+		
 		try{
 			allTextDiv.textContent=allTextMarks.join('');
 		}catch(e){
@@ -14643,10 +14634,10 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
       var style = styles[geom.fontName];
       var textDiv = document.createElement('div');
       this.textDivs.push(textDiv);
-      if (isAllWhitespace(geom.str)) {
+     /* if (isAllWhitespace(geom.str)) {
         textDiv.dataset.isWhitespace = true;
         return;
-      }
+      }*/
       var tx = PDFJS.Util.transform(this.viewport.transform, geom.transform);
       var angle = Math.atan2(tx[1], tx[0]);
       if (style.vertical) {
@@ -17717,7 +17708,7 @@ function webViewerInitialized() {
     var xhr = new XMLHttpRequest();
     xhr.onload = function() {
 	  setupMarks=[];
-      allTextMarks=[0,[]];
+      allTextMarks=[];
       PDFViewerApplication.open(new Uint8Array(xhr.response), 0);
     };
     try {
@@ -17733,7 +17724,7 @@ function webViewerInitialized() {
 
   if (file) {
 	setupMarks=[];
-    allTextMarks=[0,[]];
+    allTextMarks=[];
     PDFViewerApplication.open(file, 0);
   }
 }
@@ -17889,7 +17880,7 @@ window.addEventListener('change', function webViewerChange(evt) {
   if (!PDFJS.disableCreateObjectURL &&
       typeof URL !== 'undefined' && URL.createObjectURL) {
 	setupMarks=[];
-    allTextMarks=[0,[]];
+    allTextMarks=[];
     PDFViewerApplication.open(URL.createObjectURL(file), 0);
   } else {
     // Read the local file into a Uint8Array.
@@ -17898,7 +17889,7 @@ window.addEventListener('change', function webViewerChange(evt) {
       var buffer = evt.target.result;
       var uint8Array = new Uint8Array(buffer);
 	  setupMarks=[];
-      allTextMarks=[0,[]];
+      allTextMarks=[];
       PDFViewerApplication.open(uint8Array, 0);
     };
     fileReader.readAsArrayBuffer(file);
