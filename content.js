@@ -349,7 +349,7 @@ ta.nameSelection=function(names, altText,hexRGB,ix){ //Create annotation for sel
                 m.className='';
                 m.style.backgroundColor=srgb;
                 let txc=stx_doc[ selNodes[0] ][0].getAttribute('textcol');
-                txc=txc!==null ? txc : stx_doc[0][0].getAttribute('textcol');
+				txc=txc!==null ? txc : ( typeof(stx_doc[0])==='undefined' ? '#000000' : stx_doc[0][0].getAttribute('textcol'));		
                 m.style.color=txc;
                 if(i===0){
                     firstTCol=txc;
@@ -604,14 +604,10 @@ ta.findMarks=function(pat,plain,case_insensitive){	//search for marked text
   
 										
     if(isMarked && (ta.markText==='' || ta.markText===null ) ){
-        let txt=[];
-          let stx=getMatchingNodesShadow_order(document,'mark[indexnumber]',false,false);
-          for(let i=0, len=stx.length; i<len; ++i){
-            let m=stx[i];
-            let mtx=m.textContent;
-            txt[ parseInt(m.getAttribute('indexnumber')) ]=mtx!=='' ? mtx : String.fromCharCode(8203);
-          }
-          ta.markText=txt.join('');
+          let stx=getMatchingNodesShadow_order(document,'div#textAnnotate_markText',false,false);
+		  if(stx.length>0){
+			  ta.markText=stx[0].textContent;
+		  }
     }
     let str=ta.markText;
     let out=[];
@@ -698,7 +694,7 @@ ta.searchSelect=function(mks,hexRGB,types,altText){	//search for marked text and
                 m.className='';
                 m.style.backgroundColor=srgb;
                 let txc=stx_doc[ selNodes[0] ][0].getAttribute('textcol');
-                txc=txc!==null ? txc : stx_doc[0][0].getAttribute('textcol');
+                txc=txc!==null ? txc : ( typeof(stx_doc[0])==='undefined' ? '#000000' : stx_doc[0][0].getAttribute('textcol'));
                 m.style.color=txc;
                 if(i===0){
                     firstTCol=txc;
