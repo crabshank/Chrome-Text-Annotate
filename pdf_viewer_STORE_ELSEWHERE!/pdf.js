@@ -14547,30 +14547,20 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
 			let defCol;
 			let n=getMatchingNodesShadow_order(textLayerFrag, '#text', true, false);
 			for(let k=0, len_k=n.length; k<len_k; k++){
-				let diffCol=false;
 				let nk=n[k];
 				let pp=nk.parentElement;
 				let chs=getMatchingNodesShadow_order(pp, false, true,false);
 				let wcs=window.getComputedStyle(pp);
 				let txc=wcs.color;
-				let txcAtt=' '; 
-				if(cnt===0){
-					defCol=txc;
-					txcAtt=` textCol="${txc}" `;
-				}
+				let txcAtt=` textCol="#000000" `;
 				let dtc=nk.textContent;
-				if(txc!==defCol){
-					txcAtt=` textCol="${txc}" `;
-					diffCol=true;
-				}
 				nk.textContent=`<mark${txcAtt}indexnumber="${cnt}" class="no_hl">`+dtc[0]+'</mark>';
 				nk.indexNumber=cnt;
 				
 				let lastNode=nk;
 				cnt++;
 				for(let i=1, len_i=dtc.length; i<len_i; i++){
-					txcAtt= diffCol===true ? ` textCol="${txc}" ` : ' ';
-					let nt = document.createTextNode(`<mark${txcAtt}indexnumber="${cnt}" class="no_hl">`+dtc[i]+'</mark>');
+					let nt = document.createTextNode(`<mark indexnumber="${cnt}" class="no_hl">`+dtc[i]+'</mark>');
 					insertAfter(nt, lastNode);
 					nt.indexNumber=cnt;
 					cnt++;
