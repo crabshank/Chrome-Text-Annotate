@@ -1328,12 +1328,13 @@ docEvts['pointermove']=true;
 docEvts['touchend']=true;
 }
 
-function findURLmatch() {
+function findURLmatch(items) {
 	var blSite='';
 	var blFcn=``;
 	var found=false;
     for (let i = 0, len=addrs.length; i<len; i++) {
 			if(addrs[i]===window.location.href){
+					fcns=JSON.parse(LZString.decompressFromEncodedURIComponent(items.fcn_list));
 				   return [true,addrs[i],JSON.parse(fcns[i]),i];
 			}
 		//console.log(found);
@@ -1442,23 +1443,21 @@ async function start_up_storage(){
 								setObjct=true;
 							}
 							
-							if(!!items.fcn_list && typeof  items.fcn_list!=='undefined'){
-								fcns=JSON.parse(LZString.decompressFromEncodedURIComponent(items.fcn_list));
-							}else{
+							if(!items.fcn_list || typeof (items.fcn_list)==='undefined'){
 								setObj["fcn_list"]=empty_JSON_arr;
 								setObjct=true;
 							}
 								if(setObjct){
 									chrome.storage.local.set(setObj, function() {
 										chrome.storage.local.get(null, function(items) {
-													 urlMatch=findURLmatch();
+													 urlMatch=findURLmatch(items);
 													resolve();
 										});
 									});
 								}else{
-									 urlMatch=findURLmatch();
-									resolve();
-								}
+									 urlMatch=findURLmatch(items);
+									 resolve();
+								}	
 		});
 	});
 }
