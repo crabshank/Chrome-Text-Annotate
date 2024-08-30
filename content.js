@@ -1568,17 +1568,17 @@ function start_up(){
 			await start_up_storage();
             let testMk=document.createElement('mark');
             let testMk2=document.createElement('mark');
-            testMk.className='no_hl';
+            testMk.className='';
             testMk2.className='no_hl';
-            testMk.style.cssText='display: none !important';
-            testMk2.style.cssText='display: none !important; background-color: unset !important; color: unset !important;';
-            testMk.setAttribute('indexnumber',true);
+            testMk.style.cssText='opacity: 0 !important;';
+            testMk2.style.cssText='opacity: 0 !important;';
             testMk2.setAttribute('indexnumber',true);
             document.body.insertAdjacentElement('beforeend',testMk);
             document.body.insertAdjacentElement('beforeend',testMk2);
             let wcs=window.getComputedStyle(testMk);
             let wcs2=window.getComputedStyle(testMk2);
-			isMarked= wcs['background-color']===wcs2['background-color'] && wcs['color']===wcs2['color'] ? true : false;
+			let cssw=[ wcs['color'],  wcs2['color'], wcs['background-color'],  wcs2['background-color']];
+			isMarked= (cssw[0]!==cssw[1] || cssw[2]!==cssw[3] )  && cssw.join('').trim()!==''  ? true : false;
             elRemover(testMk2);
             elRemover(testMk);
 			if(urlMatch[0] || isMarked){
