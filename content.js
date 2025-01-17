@@ -1201,6 +1201,7 @@ if(docEvts['pointerup']!==true){
 		textAnnotate.ifrm_document.head.insertAdjacentHTML('afterbegin',`<style>
 		* {
 			color: white;
+            background: unset;
 		}
 		button{
 			background: buttonface;
