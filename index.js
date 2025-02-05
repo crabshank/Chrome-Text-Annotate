@@ -26,10 +26,8 @@ window.onclick=(e)=>{
 	t=e.target;
 	if(t===mkp || t===mkps || t===svtx){
 		send([t.id,txtar.value]);
-		window.close();
 	}else if(t===spt){ //Add to options
 		send([t.id,null]);
-		window.close();
 	}
 };
 
@@ -63,7 +61,7 @@ function send(message, notClose) {
 		  chrome.tabs.sendMessage(tid, msg);
 	  }
       if(notClose!==true){
-          window.close;
+          window.close();
       }
     }
 

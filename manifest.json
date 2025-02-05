@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Text Annotate",
-  "version": "2025.1",
+  "version": "2025.2",
   "options_page":  "options.html",
   "content_scripts": [
     {
