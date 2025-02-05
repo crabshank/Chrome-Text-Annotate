@@ -1265,6 +1265,9 @@ if(docEvts['pointerup']!==true){
 		}
 
 		textarea.altText{
+            border: buttonface;
+            border-width: 1px;
+            border-style: outset;
 			vertical-align: bottom;
 		}
 
