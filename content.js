@@ -988,9 +988,21 @@ function insertAfter(newNode, existingNode) {
 
 
 function doMark(s, markOnly, noMark){
-
-	let sel= s!==false && typeof(s)!=='undefined' && s.trim()!=='' ? getMatchingNodesShadow_order(document,s,false,false) : [document.documentElement];
-	textAnnotate.selector= markOnly===true || isMarked===true  ? null : s ;
+    let sel=[];
+	if(s!==false && typeof(s)!=='undefined' && s.trim()!==''){
+        sel=getMatchingNodesShadow_order(document,s,false,false);
+    }else{
+        let wsel=window.getSelection();
+        let rng=document.createRange();
+        rng.selectNodeContents(document.documentElement);
+        wsel.removeAllRanges();
+        wsel.addRange(rng);
+        sel=getMatchingNodesShadow_order(document, '#text', true, false).filter(t=>{
+            return wsel.containsNode(t);
+        });
+        wsel.removeAllRanges();
+    }
+	textAnnotate.selector= markOnly===true || isMarked===true  ? null : s ; 
 	if(sel===null && s!==false){
 		alert('Invalid CSS selector!');
 		return;
