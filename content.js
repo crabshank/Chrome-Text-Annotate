@@ -229,10 +229,10 @@ ta.perChar=function(els){ //Create per-character mark tags
 	let elsArr=Array.isArray(els) ? els : [els];
 	let cnt=0;
 	let defCol;
-	for(let j=0, len_j=elsArr.length; j<len_j; j++){
+	for(let j=0, len_j=elsArr.length; j<len_j; ++j){
 		let tmp_allTextNodeParentEls=[];
 		let el=elsArr[j];
-		let n=getMatchingNodesShadow_order(el, '#text', true, false)/*.filter((t)=>{return t.parentElement.tagName!=='TITLE' ;})*/;
+		let n = el.nodeName==='#text' ? [el] : getMatchingNodesShadow_order(el, '#text', true, false);
 		for(let k=0, len_k=n.length; k<len_k; k++){
 			let diffCol=false;
 			let nk=n[k];
